@@ -30,10 +30,27 @@ library
                        tower-hal
 
   default-language:    Haskell2010
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall
+  -- -Werror
 
-executable nmea-test-gen
-  main-is:             NMEAPosix.hs
+--executable nmea-test-gen
+--  main-is:             NMEAPosix.hs
+--  hs-source-dirs:      test
+--  build-depends:       base >= 4.6,
+--                       ivory,
+--                       ivory-stdlib,
+--                       ivory-backend-c,
+--                       ivory-hw,
+--                       tower          >= 0.9,
+--                       tower-config,
+--                       tower-hal,
+--                       ivory-tower-base,
+--                       ivory-tower-posix,
+--                       ivory-tower-drivers
+--  ghc-options:          -Wall
+
+executable rn2483-test-gen
+  main-is:             RN2483Test.hs
   hs-source-dirs:      test
   build-depends:       base >= 4.6,
                        ivory,
@@ -42,8 +59,9 @@ executable nmea-test-gen
                        ivory-hw,
                        tower          >= 0.9,
                        tower-config,
-                       tower-hal,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
                        ivory-tower-base,
-                       ivory-tower-posix,
                        ivory-tower-drivers
   ghc-options:          -Wall

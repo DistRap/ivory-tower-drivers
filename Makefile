@@ -1,8 +1,15 @@
 #include ../stack.mk
 
+OSNAME :=$(shell grep -o '^NAME=.*$$' /etc/os-release | cut -d'=' -f2 )
+ifeq ($(OSNAME),NixOS)
+       STACK=stack --nix
+else
+       STACK=stack
+endif
+
 TARGET ?= /dev/f4gdb
 IVORYFLAGS ?= --const-fold --verbose
-TESTS      := 
+TESTS      := rn2483-test
 
 AADL_TESTS :=
 POSIX_TESTS:= nmea-test
@@ -21,7 +28,7 @@ clean: $(CLEANS)
 
 define MKTEST
 $(1):
-	stack build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
+	$(STACK) build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
 	make -C build/$(1)
 $(1)-clean:
 	rm -rf build/$(1)
@@ -35,14 +42,14 @@ endef
 
 define MK_AADL_TEST
 $(1):
-	stack build . --exec '$(1)-gen --src-dir=build_aadl/$(1) $(IVORYFLAGS)'
+	$(STACK) build . --exec '$(1)-gen --src-dir=build_aadl/$(1) $(IVORYFLAGS)'
 $(1)_clean:
 	rm -rf build_aadl/$(1)
 endef
 
 define MK_POSIX_TEST
 $(1):
-	stack build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
+	$(STACK) build . --exec '$(1)-gen --src-dir=build/$(1) $(IVORYFLAGS)'
 	make -C build/$(1)
 (1)-clean:
 	rm -rf build/$(1)
