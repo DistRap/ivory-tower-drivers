@@ -31,11 +31,13 @@ rn2483 :: forall buf e . (IvoryString buf)
        -> Proxy buf
        -> Tower e ( ChanOutput ('Stored IBool)
                   , ChanOutput ('Stored IBool)
-                  , ChanOutput ('Stored IBool))
+                  , ChanOutput ('Stored IBool)
+                  , ChanInput buf)
 rn2483 ostream istream initChan rstPin _proxybuf = do
   ready <- channel
   acceptChan <- channel
   txdone <- channel
+  cmdChan <- channel
 
   monitor "rn2483" $ do
     handler systemInit "rn2483init" $ do
@@ -49,6 +51,20 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
     (tmp :: Ref 'Global buf) <- state "rn2483_tmp"
 
     stateOperational <- stateInit "rn2483_operational" (ival false)
+
+    handler (snd cmdChan) "rn2383cmd" $ do
+      o <- emitter ostream 32
+      callback $ \cmd -> do
+        puts o "mac tx cnf 1 "
+
+        len <- cmd ~>* stringLengthL
+
+        arrayMap $ \ix -> do
+          unless (fromIx ix >=? len) $ do
+            c <- deref (cmd ~> stringDataL ! ix)
+            putHex o c
+
+        puts o "\r\n"
 
     coroutineHandler initChan istream "rn2483i" $ do
       o <- emitter ostream 32
@@ -87,7 +103,13 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
           cond_
             [ accepted ==> do
                 emitV accept true
-                rpc "mac tx cnf 1 48"
+                --rpc "mac tx cnf 1 48"
+
+                -- msg from handler above
+                res <- yield
+                refCopy tmp res
+                gotOk <- "ok" `isPrefixOf` res
+                assert $ gotOk
 
                 let expect x act = do
                       result <- yield
@@ -104,4 +126,4 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
             refCopy locbuf input
 
           received += 1
-  return (snd ready, snd acceptChan, snd txdone)
+  return (snd ready, snd acceptChan, snd txdone, fst cmdChan)

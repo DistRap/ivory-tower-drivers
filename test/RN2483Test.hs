@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import Ivory.Tower.Config
@@ -5,6 +7,7 @@ import Ivory.OS.FreeRTOS.Tower.STM32
 
 import TestPlatforms
 import Ivory.Language
+import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.Base
 import Ivory.Tower.Base.UART.Types
@@ -46,7 +49,7 @@ app tocc toleds touart2 touart3 = do
         puts o "HELO\r\n"
 
   istreamCRLF <- crlfBuffer istream' (Proxy :: Proxy UARTBuffer)
-  (rdy, acc, txdone) <- rn2483 merged istreamCRLF systemInit resetPin (Proxy :: Proxy UARTBuffer)
+  (rdy, acc, txdone, cmd) <- rn2483 merged istreamCRLF systemInit resetPin (Proxy :: Proxy UARTBuffer)
 
   monitor "rnleds" $ do
     handler rdy "rnRdy" $ do
@@ -54,8 +57,14 @@ app tocc toleds touart2 touart3 = do
         ledOn $ orangeLED leds
 
     handler acc "rnAccepted" $ do
+      cmdE <- emitter cmd 1
       callbackV $ \v -> do
-        ifte_ v (ledOn $ greenLED leds) (ledOn $ redLED leds)
+        when v $ do
+          ledOn $ greenLED leds
+          x <- local $ stringInit "481337"
+          emit cmdE (constRef x)
+
+        unless v $ ledOn $ redLED leds
 
     handler txdone "rnTXdone" $ do
       callback $ const $ do
