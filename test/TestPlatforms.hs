@@ -136,10 +136,10 @@ f4discovery = TestPlatform
         }
     }
   , testplatform_i2c = TestI2C
-      { testI2C = F405.i2c2
+      { testI2C = F405.i2c1
       , testI2CPins = I2CPins
-        { i2cpins_sda = F405.pinB11
-        , i2cpins_scl = F405.pinB10
+        { i2cpins_sda = F405.pinB9
+        , i2cpins_scl = F405.pinB6
         }
       }
   , testplatform_can1 = TestCAN
