@@ -14,6 +14,7 @@ library
   exposed-modules:     Ivory.Tower.Drivers
                        Ivory.Tower.Drivers.Net.RN2483
                        Ivory.Tower.Drivers.GPS.NMEA
+                       Ivory.Tower.Drivers.Sensor.SHT21
 
   build-depends:       base >= 4.6,
                        bytestring,
@@ -55,11 +56,32 @@ executable rn2483-test-gen
   build-depends:       base >= 4.6,
                        ivory,
                        ivory-stdlib,
+                       ivory-serialize,
                        ivory-backend-c,
                        ivory-hw,
                        tower          >= 0.9,
                        tower-config,
                        tower-freertos-stm32,
+                       tower-hal,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       ivory-tower-base,
+                       ivory-tower-drivers
+  ghc-options:          -Wall
+
+executable sht21-test-gen
+  main-is:             SHT21.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-serialize,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       tower-hal,
                        ivory-bsp-stm32,
                        ivory-bsp-tests,
                        ivory-tower-base,
