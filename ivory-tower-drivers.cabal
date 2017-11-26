@@ -14,6 +14,7 @@ library
   exposed-modules:     Ivory.Tower.Drivers
                        Ivory.Tower.Drivers.Net.RN2483
                        Ivory.Tower.Drivers.GPS.NMEA
+                       Ivory.Tower.Drivers.PWM.ATIM
 
   build-depends:       base >= 4.6,
                        bytestring,
