@@ -17,6 +17,7 @@ library
                        Ivory.Tower.Drivers.Net.RFM95W.Regs
                        Ivory.Tower.Drivers.Net.RFM95W.RegTypes
                        Ivory.Tower.Drivers.GPS.NMEA
+                       Ivory.Tower.Drivers.PWM.ATIM
 
   build-depends:       base >= 4.6,
                        bytestring,
