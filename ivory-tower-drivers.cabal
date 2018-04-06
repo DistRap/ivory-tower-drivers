@@ -13,6 +13,9 @@ library
   hs-source-dirs:      src
   exposed-modules:     Ivory.Tower.Drivers
                        Ivory.Tower.Drivers.Net.RN2483
+                       Ivory.Tower.Drivers.Net.RFM95W
+                       Ivory.Tower.Drivers.Net.RFM95W.Regs
+                       Ivory.Tower.Drivers.Net.RFM95W.RegTypes
                        Ivory.Tower.Drivers.GPS.NMEA
 
   build-depends:       base >= 4.6,
