@@ -12,6 +12,12 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Ivory.Tower.Drivers
+                       Ivory.Tower.Drivers.ADC.HX711
+                       Ivory.Tower.Drivers.Display.MAX7219
+                       Ivory.Tower.Drivers.Display.Fonts
+                       Ivory.Tower.Drivers.Encoder.AS5407
+                       Ivory.Tower.Drivers.Encoder.AS5407.Regs
+                       Ivory.Tower.Drivers.Encoder.AS5407.Types
                        Ivory.Tower.Drivers.Net.RN2483
                        Ivory.Tower.Drivers.Net.RFM95W
                        Ivory.Tower.Drivers.Net.RFM95W.Regs
@@ -62,6 +68,60 @@ executable rn2483-test-gen
                        ivory-backend-c,
                        ivory-hw,
                        tower          >= 0.9,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       ivory-tower-base,
+                       ivory-tower-drivers
+  ghc-options:          -Wall
+
+executable max7219-test-gen
+  main-is:             MAX7219Test.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-hal,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       ivory-tower-base,
+                       ivory-tower-drivers
+  ghc-options:          -Wall
+
+executable as5407-test-gen
+  main-is:             AS5407Test.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-hal,
+                       tower-config,
+                       tower-freertos-stm32,
+                       ivory-bsp-stm32,
+                       ivory-bsp-tests,
+                       ivory-tower-base,
+                       ivory-tower-drivers
+  ghc-options:          -Wall
+
+executable hx711-test-gen
+  main-is:             HX711Test.hs
+  hs-source-dirs:      test
+  build-depends:       base >= 4.6,
+                       ivory,
+                       ivory-stdlib,
+                       ivory-backend-c,
+                       ivory-hw,
+                       tower          >= 0.9,
+                       tower-hal,
                        tower-config,
                        tower-freertos-stm32,
                        ivory-bsp-stm32,
