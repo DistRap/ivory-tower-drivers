@@ -9,7 +9,7 @@ endif
 
 TARGET ?= /dev/f4gdb
 IVORYFLAGS ?= --const-fold --verbose
-TESTS      := rn2483-test max7219-test as5407-test hx711-test
+TESTS      := rn2483-test max7219-test as5407-test hx711-test dotmatrix-test
 
 AADL_TESTS :=
 POSIX_TESTS:= nmea-test

@@ -17,22 +17,12 @@ dependencies:
 library:
   source-dirs: src
   ghc-options: -Wall
-  exposed-modules:
-  - Ivory.Tower.Drivers
-  - Ivory.Tower.Drivers.ADC.HX711
-  - Ivory.Tower.Drivers.Display.MAX7219
-  - Ivory.Tower.Drivers.Display.Fonts
-  - Ivory.Tower.Drivers.Encoder.AS5407
-  - Ivory.Tower.Drivers.Encoder.AS5407.Regs
-  - Ivory.Tower.Drivers.Encoder.AS5407.Types
-  - Ivory.Tower.Drivers.Net.RN2483
-  - Ivory.Tower.Drivers.GPS.NMEA
-  - Ivory.Tower.Drivers.PWM.ATIM
   dependencies:
   - bytestring
   - dlist
   - monadLib
   - ivory-serialize
+
 executables:
   rn2483-test-gen: &apptemplate
     main:                RN2483Test.hs
@@ -45,6 +35,9 @@ executables:
     - tower-freertos-stm32
     - ivory-bsp-tests
     - ivory-tower-drivers
+  dotmatrix-test-gen:
+    <<: *apptemplate
+    main:                DotMatrixTest.hs
   max7219-test-gen:
     <<: *apptemplate
     main:                MAX7219Test.hs
