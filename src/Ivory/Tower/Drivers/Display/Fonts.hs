@@ -97,6 +97,7 @@ font7seg '°' = 0x63
 font7seg  _   = 0x00
 
 --font7seg' :: (GetAlloc eff ~ 'Scope s) => Uint8 -> Ivory eff ('Stored Uint8)
+font7seg' :: (GetAlloc eff ~ 'Scope s) => Uint8 -> Ivory eff Uint8
 font7seg' x = cond [
     x ==?  32 ==> return 0x00
   , x ==?  45 ==> return 0x01
