@@ -10,8 +10,8 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
-
-import Ivory.BSP.STM32.Driver.SPI
+import Ivory.Tower.HAL.Bus.SPI
+import Ivory.Tower.HAL.Bus.SPI.DeviceHandle
 
 import Ivory.Tower.Drivers.Encoder.AS5407.Regs
 import Ivory.Tower.Drivers.Encoder.AS5407.Types

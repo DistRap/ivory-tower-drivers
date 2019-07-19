@@ -9,17 +9,17 @@ import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
-
-import Ivory.BSP.STM32.Driver.SPI
+import Ivory.Tower.HAL.Bus.SPI
+import Ivory.Tower.HAL.Bus.SPI.DeviceHandle
 
 import Ivory.Tower.Drivers.Display.Fonts
 
 import Ivory.Base (ixToU8)
 
-regDecodeMode = 0x09
-regIntensity = 0x0A
-regScanLimit = 0x0B
-regShutdown = 0x0C
+regDecodeMode  = 0x09
+regIntensity   = 0x0A
+regScanLimit   = 0x0B
+regShutdown    = 0x0C
 regDisplayTest = 0x0F
 
 
