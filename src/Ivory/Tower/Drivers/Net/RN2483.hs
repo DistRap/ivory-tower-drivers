@@ -11,7 +11,7 @@ import Ivory.Tower
 import Ivory.Tower.Base.GPIO
 import Ivory.Tower.Base.UART
 
-import Ivory.BSP.STM32.Peripheral.GPIOF4
+import Ivory.BSP.STM32.Peripheral.GPIO
 
 rn2483init :: [String]
 rn2483init = [

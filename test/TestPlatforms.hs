@@ -19,7 +19,7 @@ import qualified Ivory.BSP.STM32F405.SPI         as F405
 import qualified Ivory.BSP.STM32F405.RNG         as F405
 
 import Ivory.BSP.STM32.Peripheral.CAN
-import Ivory.BSP.STM32.Peripheral.GPIOF4
+import Ivory.BSP.STM32.Peripheral.GPIO
 import Ivory.BSP.STM32.Peripheral.UART
 import Ivory.BSP.STM32.Peripheral.I2C
 import Ivory.BSP.STM32.Peripheral.RNG

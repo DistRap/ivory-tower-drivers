@@ -11,7 +11,7 @@ import Ivory.Stdlib
 import Ivory.Tower
 import Ivory.HW
 
-import Ivory.BSP.STM32.Peripheral.GPIOF4
+import Ivory.BSP.STM32.Peripheral.GPIO
 
 data HX711 =
   HX711
