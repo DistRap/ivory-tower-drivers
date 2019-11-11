@@ -25,6 +25,9 @@ import Ivory.Tower.Drivers.Temperature.HTS221.Peripheral
 named :: String -> String
 named nm = "hts221_" ++ nm
 
+hts221DefaultAddr :: I2CDeviceAddr
+hts221DefaultAddr = I2CDeviceAddr 0x5F
+
 hts221TypesModule :: Module
 hts221TypesModule = package "hts221_types" $ do
   defStruct (Proxy :: Proxy "sample_th")
@@ -85,13 +88,13 @@ hts221Tower (BackpressureTransmit reqChan resChan) initChan addr = do
         ctrl2Data <- assign $ repToBits $ withBits 0 $ do
           setBit rebootMemory
 
-        res <- rpc $ writeDevReg addr (htsCtrl1 hts221) ctrl1Data
-        code <- deref (res ~> resultcode)
-        assert (code ==? 0)
+        res1 <- rpc $ writeDevReg addr (htsCtrl1 hts221) ctrl1Data
+        code1 <- deref (res1 ~> resultcode)
+        assert (code1 ==? 0)
 
-        res <- rpc $ writeDevReg addr (htsCtrl2 hts221) ctrl2Data
-        code <- deref (res ~> resultcode)
-        assert (code ==? 0)
+        res2 <- rpc $ writeDevReg addr (htsCtrl2 hts221) ctrl2Data
+        code2 <- deref (res2 ~> resultcode)
+        assert (code2 ==? 0)
 
         h0Rh <- read $ readDevReg addr (htsCalH0_RH_x2 hts221)
         h1Rh <- read $ readDevReg addr (htsCalH1_RH_x2 hts221)
@@ -189,4 +192,5 @@ writeDevReg addr bdr dat = fmap constRef $ local $ istruct
   , rx_len  .= ival 0
   ]
 
+regAddr :: BitDataReg d -> Integer
 regAddr r = case bdr_reg r of Reg a -> a
