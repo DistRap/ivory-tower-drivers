@@ -1,0 +1,53 @@
+name:           ivory-tower-drivers
+version:        0.1.0.0
+synopsis:       Ivory Tower drivers
+author:         base48.cz
+maintainer:     srk@48.io
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+
+cabal-version: 1.12
+
+library
+  exposed-modules:
+      Ivory.Tower.Drivers
+      Ivory.Tower.Drivers.ADC.HX711
+      Ivory.Tower.Drivers.ADC.PCF8591
+      Ivory.Tower.Drivers.Display.MAX7219
+      Ivory.Tower.Drivers.Display.Fonts
+      Ivory.Tower.Drivers.Encoder.AS5407
+      Ivory.Tower.Drivers.Encoder.AS5407.Regs
+      Ivory.Tower.Drivers.Encoder.AS5407.Types
+      Ivory.Tower.Drivers.Net.RN2483
+      Ivory.Tower.Drivers.Temperature.Types
+      Ivory.Tower.Drivers.Temperature.HTS221
+      Ivory.Tower.Drivers.Temperature.HTS221.Peripheral
+      Ivory.Tower.Drivers.Temperature.HTS221.Regs
+      Ivory.Tower.Drivers.Temperature.HTS221.RegTypes
+      Ivory.Tower.Drivers.GPS.NMEA
+  other-modules:
+      Ivory.Tower.Drivers.Encoder.AS5407.RegTypes
+      Ivory.Tower.Drivers.Net.RFM95W
+      Ivory.Tower.Drivers.Net.RFM95W.Regs
+      Ivory.Tower.Drivers.Net.RFM95W.RegTypes
+      Ivory.Tower.Drivers.PWM.ATIM
+      Paths_ivory_tower_drivers
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      base >=4.6
+    , bytestring
+    , dlist
+    , ivory
+    , ivory-bsp-stm32
+    , ivory-hw
+    , ivory-serialize
+    , ivory-stdlib
+    , ivory-tower-base
+    , monadLib
+    , tower >=0.9
+    , tower-config
+    , tower-hal
+  default-language: Haskell2010
