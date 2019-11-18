@@ -25,6 +25,10 @@ library
       Ivory.Tower.Drivers.Temperature.HTS221.Peripheral
       Ivory.Tower.Drivers.Temperature.HTS221.Regs
       Ivory.Tower.Drivers.Temperature.HTS221.RegTypes
+      Ivory.Tower.Drivers.Temperature.SI7006
+      Ivory.Tower.Drivers.Temperature.SI7006.Peripheral
+      Ivory.Tower.Drivers.Temperature.SI7006.Regs
+      Ivory.Tower.Drivers.Temperature.SI7006.RegTypes
       Ivory.Tower.Drivers.GPS.NMEA
   other-modules:
       Ivory.Tower.Drivers.Encoder.AS5407.RegTypes
