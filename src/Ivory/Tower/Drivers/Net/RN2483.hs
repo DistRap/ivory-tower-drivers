@@ -11,6 +11,8 @@ import Ivory.Tower
 import Ivory.Tower.Base.GPIO
 import Ivory.Tower.Base.UART
 
+import Ivory.HW.Module
+
 import Ivory.BSP.STM32.Peripheral.GPIO
 
 rn2483init :: [String]
@@ -40,10 +42,14 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
   cmdChan <- channel
 
   monitor "rn2483" $ do
+    -- due to pins
+    monitorModuleDef $ hw_moduledef
+
     handler systemInit "rn2483init" $ do
       callback $ const $ do
-        pinOutSpeed rstPin gpio_speed_2mhz
-        pinLow rstPin
+        pinEnable rstPin
+        pinSetMode rstPin gpio_mode_output
+        pinClear rstPin
 
     received <- stateInit "rn2483_received" (ival (0 :: Uint32))
     (locbuf :: Ref 'Global buf) <- state "rn2483_buf"
@@ -82,7 +88,7 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
                assert $ gotOk
                return ()
 
-        pinHigh rstPin
+        pinSet rstPin
 
         input <- yield
         res <- "RN2483" `isPrefixOf` input
