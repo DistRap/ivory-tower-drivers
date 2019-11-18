@@ -14,20 +14,18 @@ import Ivory.Tower.Types.Time
 
 [ivory|
  struct sample_th
-  { sample_th_temperature :: Stored IDouble
-  ; sample_th_humidity    :: Stored IDouble
+  { sample_th_temperature :: Stored IFloat
+  ; sample_th_humidity    :: Stored IFloat
   ; sample_th_time        :: Stored ITime
   }
 
  struct sample_t
-  { sample_t_temperature :: Stored IDouble
+  { sample_t_temperature :: Stored IFloat
   ; sample_t_time        :: Stored ITime
   }
 
  struct sample_h
-  { sample_h_humidity    :: Stored IDouble
+  { sample_h_humidity    :: Stored IFloat
   ; sample_h_time        :: Stored ITime
   }
 |]
-
-
