@@ -107,29 +107,25 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
           denied <- "denied" `isPrefixOf` joinres
 
           cond_
-            [ accepted ==> do
-                emitV accept true
-                --rpc "mac tx cnf 1 48"
-
-                -- msg from handler above
-                res <- yield
-                refCopy tmp res
-                gotOk <- "ok" `isPrefixOf` res
-                assert $ gotOk
-
-                let expect x act = do
-                      result <- yield
-                      match <- x `isPrefixOf` result
-                      when match $ act
-
-                expect "mac_tx_ok" $ emitV txd true
-
+            [ accepted ==> emitV accept true
             , denied ==> emitV accept false
             ]
 
-          forever $ do
-            _ <- yield
-            refCopy locbuf input
+          forever $ noBreak $ do
+            -- msg from handler above
+            res <- yield
+            refCopy tmp res
+            _gotOk <- "ok" `isPrefixOf` res
+            --unless gotOk $ ledOn $ redLED leds
+            -- assert here instead?
 
-          received += 1
+            let expect x act = do
+                  result <- yield
+                  match <- x `isPrefixOf` result
+                  when match $ act
+
+            expect "mac_tx_ok" $ emitV txd true
+
+            received += 1
+
   return (snd ready, snd acceptChan, snd txdone, fst cmdChan)
