@@ -2,46 +2,61 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards #-}
 
-module Ivory.Tower.Drivers.Net.RN2483 where
+module Ivory.Tower.Drivers.Net.RN2483 (
+    rn2483Tower
+  , module Ivory.Tower.Drivers.Net.RN2483.Types
+  , module Ivory.Tower.Drivers.Net.RN2483.Config
+  ) where
+
+import Control.Monad (forM_)
 
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
-import Ivory.Tower.Base.GPIO
+import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.Base.UART
 
 import Ivory.HW.Module
 
 import Ivory.BSP.STM32.Peripheral.GPIO
 
-rn2483init :: [String]
-rn2483init = [
-    "radio set pwr 15"
-  , "radio set sf sf12"
-  , "radio set cr 4/5"
-  , "radio set wdt 15000"
-  , "radio set iqi off"
-  , "radio set bw 125"
-  ]
+import Ivory.Tower.Drivers.Net.RN2483.Types
+import Ivory.Tower.Drivers.Net.RN2483.Config
 
-rn2483 :: forall buf e . (IvoryString buf)
-       => ChanInput ('Stored Uint8)
-       -> ChanOutput buf
-       -> ChanOutput ('Stored ITime)
-       -> GPIOPin
-       -> Proxy buf
-       -> Tower e ( ChanOutput ('Stored IBool)
-                  , ChanOutput ('Stored IBool)
-                  , ChanOutput ('Stored IBool)
-                  , ChanInput buf)
-rn2483 ostream istream initChan rstPin _proxybuf = do
-  ready <- channel
-  acceptChan <- channel
-  txdone <- channel
-  cmdChan <- channel
+named :: String -> String
+named n = "rn2483" ++ n
 
-  monitor "rn2483" $ do
+rn2483Tower :: forall buf e . (IvoryString buf)
+            => RadioConfig
+            -> ChanInput ('Stored Uint8)
+            -> ChanOutput ('Stored Uint8)
+            -> ChanOutput ('Stored ITime)
+            -> GPIOPin
+            -> Proxy buf
+            -> Tower e ( ChanOutput ('Stored IBool)
+                       , ChanInput ('Stored RadioCommandMode)
+                       , BackpressureTransmit buf ('Stored IBool))
+rn2483Tower cfg ostream istreamChar initChan rstPin proxybuf = do
+  checkRadioConfig cfg
+
+  acceptChan  <- channel
+  txdoneChan  <- channel
+  cmdChan     <- channel
+  cmdModeChan <- channel
+
+  rejoinPer <- period (Milliseconds 8000)
+
+  istream <- crlfBuffer istreamChar proxybuf
+
+  monitor (named "mon") $ do
+    retryJoin   <- state     (named "retryJoin")
+    cmdMode     <- stateInit (named "commandMode") (ival modeUnconfirmed)
+    transmitted <- stateInit (named "transmitted") (ival (0 :: Uint32))
+    commandsOk  <- stateInit (named "oks")         (ival (0 :: Uint32))
+    commandsErr <- stateInit (named "errors")      (ival (0 :: Uint32))
+
     -- due to pins
     monitorModuleDef $ hw_moduledef
 
@@ -51,41 +66,47 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
         pinSetMode rstPin gpio_mode_output
         pinClear rstPin
 
-    received <- stateInit "rn2483_received" (ival (0 :: Uint32))
-    (locbuf :: Ref 'Global buf) <- state "rn2483_buf"
+    handler rejoinPer "rn2483per" $ do
+      o <- emitter ostream 64
+      callback $ const $ do
+        go <- deref retryJoin
+        when go $ do
+          puts o $ "mac join " ++ (rnActivationMode $ rcActivationMode cfg) ++ "\r\n"
 
-    (tmp :: Ref 'Global buf) <- state "rn2483_tmp"
+    handler (snd cmdModeChan) "rn2483cmdMode" $ callback $ refCopy cmdMode
 
-    stateOperational <- stateInit "rn2483_operational" (ival false)
-
-    handler (snd cmdChan) "rn2383cmd" $ do
-      o <- emitter ostream 32
+    handler (snd cmdChan) "rn2483cmd" $ do
+      o <- emitter ostream 64
       callback $ \cmd -> do
-        puts o "mac tx cnf 1 "
-
-        len <- cmd ~>* stringLengthL
-
-        arrayMap $ \ix -> do
-          unless (fromIx ix >=? len) $ do
-            c <- deref (cmd ~> stringDataL ! ix)
-            putHex o c
-
+        mode <- deref cmdMode
+        cond_ [
+            mode ==? modeUnconfirmed ==> do
+              puts o "mac tx uncnf 1 "
+              putHexIvoryString o cmd
+          , mode ==? modeConfirmed   ==> do
+              puts o "mac tx cnf 1 "
+              putHexIvoryString o cmd
+          , mode ==? modeRaw         ==>
+              putIvoryString o cmd
+          ]
         puts o "\r\n"
 
     coroutineHandler initChan istream "rn2483i" $ do
-      o <- emitter ostream 32
-      rdy <- emitter (fst ready) 1
+      o <- emitter ostream 64
       accept <- emitter (fst acceptChan) 1
-      txd <- emitter (fst txdone) 1
+      txd <- emitter (fst txdoneChan) 1
       return $ CoroutineBody $ \ yield -> do
 
-        let isPrefixOf p x = isPrefixOfBuf p x (Proxy :: Proxy buf)
-        let rpc cmd = do
-               puts o $ cmd ++ "\r\n"
+        let isPrefixOf p x = noBreak $ isPrefixOfBuf p x (Proxy :: Proxy buf)
+            sendCmd cmd = puts o $ cmd ++ "\r\n"
+            rpc cmd = do
+               sendCmd cmd
                res <- yield
-               refCopy tmp res
                gotOk <- "ok" `isPrefixOf` res
-               assert $ gotOk
+               cond_ [
+                   gotOk ==> commandsOk += 1
+                 , true  ==> commandsErr += 1
+                 ]
                return ()
 
         pinSet rstPin
@@ -93,39 +114,53 @@ rn2483 ostream istream initChan rstPin _proxybuf = do
         input <- yield
         res <- "RN2483" `isPrefixOf` input
         when res $ do
-          flip mapM_ rn2483init $ \cmd -> rpc cmd
+          forM_ (rn2483Configure cfg) $ \cmd -> rpc cmd
 
-          store stateOperational true
+          sendCmd $ "mac join " ++ (rnActivationMode $ rcActivationMode cfg)
+          joinRes <- yield
+          noKeys <- "keys_not_init" `isPrefixOf` joinRes
 
-          emitV rdy true
+          when noKeys $ do
+            case rcActivation cfg of
+              Nothing -> return ()
+              Just act -> do
+                forM_ (rnActivate act) rpc
 
-          rpc "mac join otaa"
-          joinres <- yield
-          refCopy tmp joinres
+                -- rpc expects/eats 'ok'
+                rpc $ "mac join " ++ (rnActivationMode $ rcActivationMode cfg)
 
-          accepted <- "accept" `isPrefixOf` joinres
-          denied <- "denied" `isPrefixOf` joinres
+          forever $ do
+            joinres <- yield
 
-          cond_
-            [ accepted ==> emitV accept true
-            , denied ==> emitV accept false
-            ]
+            accepted <- noBreak $ "accept" `isPrefixOf` joinres
+            denied <-   noBreak $ "denied" `isPrefixOf` joinres
+
+            cond_
+              [ accepted ==> do
+                  store retryJoin false
+                  emitV accept true
+                  breakOut
+              , denied ==> do
+                  store retryJoin true
+                  _ <- yield
+                  return ()
+              ]
 
           forever $ noBreak $ do
             -- msg from handler above
-            res <- yield
-            refCopy tmp res
-            _gotOk <- "ok" `isPrefixOf` res
-            --unless gotOk $ ledOn $ redLED leds
-            -- assert here instead?
+            resp <- yield
+            gotOk <- "ok" `isPrefixOf` resp
+            txOk  <- "mac_tx_ok" `isPrefixOf` resp
 
-            let expect x act = do
-                  result <- yield
-                  match <- x `isPrefixOf` result
-                  when match $ act
+            cond_ [
+                gotOk ==> commandsOk += 1
+              , txOk ==> do
+                  transmitted += 1
+                  emitV txd true
+              , true ==> commandsErr += 1
+              ]
 
-            expect "mac_tx_ok" $ emitV txd true
-
-            received += 1
-
-  return (snd ready, snd acceptChan, snd txdone, fst cmdChan)
+  return ( snd acceptChan
+         , fst cmdModeChan
+         , BackpressureTransmit (fst cmdChan) (snd txdoneChan)
+         )

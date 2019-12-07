@@ -20,6 +20,8 @@ library
       Ivory.Tower.Drivers.Encoder.AS5407.Regs
       Ivory.Tower.Drivers.Encoder.AS5407.Types
       Ivory.Tower.Drivers.Net.RN2483
+      Ivory.Tower.Drivers.Net.RN2483.Config
+      Ivory.Tower.Drivers.Net.RN2483.Types
       Ivory.Tower.Drivers.Temperature.Types
       Ivory.Tower.Drivers.Temperature.HTS221
       Ivory.Tower.Drivers.Temperature.HTS221.Peripheral
