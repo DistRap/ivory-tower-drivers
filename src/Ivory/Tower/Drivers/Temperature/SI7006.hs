@@ -181,6 +181,7 @@ si7006TowerHeaterOnly (BackpressureTransmit reqChan resChan) initChan addr = do
 
   return heaterIn
 
+-- Dallas/Maxim CRC8
 crcUpdate :: (GetAlloc eff ~ 'Scope s)
           => Ref s2 ('Stored Uint8)
           -> Uint8
