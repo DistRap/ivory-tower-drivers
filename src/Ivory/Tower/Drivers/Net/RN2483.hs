@@ -114,7 +114,13 @@ rn2483Tower cfg ostream istreamChar initChan rstPin proxybuf = do
         input <- yield
         res <- "RN2483" `isPrefixOf` input
         when res $ do
-          forM_ (rn2483Configure cfg) $ \cmd -> rpc cmd
+          forM_ (rn2483Configure cfg) $ \s -> do
+            comment $ "Set " ++ s
+            (x :: Ref ('Stack s) buf) <- local $ stringInit s
+            putIvoryString o (constRef x)
+            puts o "\r\n"
+            _ <- yield
+            return ()
 
           sendCmd $ "mac join " ++ (rnActivationMode $ rcActivationMode cfg)
           joinRes <- yield
