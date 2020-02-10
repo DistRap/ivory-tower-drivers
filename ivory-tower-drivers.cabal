@@ -12,6 +12,9 @@ cabal-version: 1.12
 library
   exposed-modules:
       Ivory.Tower.Drivers
+      Ivory.Tower.Drivers.ADC.ADS1x1x
+      Ivory.Tower.Drivers.ADC.ADS1x1x.Regs
+      Ivory.Tower.Drivers.ADC.ADS1x1x.RegTypes
       Ivory.Tower.Drivers.ADC.HX711
       Ivory.Tower.Drivers.ADC.PCF8591
       Ivory.Tower.Drivers.Display.MAX7219
