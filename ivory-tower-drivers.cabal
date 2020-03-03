@@ -22,6 +22,7 @@ library
       Ivory.Tower.Drivers.Encoder.AS5407
       Ivory.Tower.Drivers.Encoder.AS5407.Regs
       Ivory.Tower.Drivers.Encoder.AS5407.Types
+      Ivory.Tower.Drivers.IO.Shift
       Ivory.Tower.Drivers.Net.RN2483
       Ivory.Tower.Drivers.Net.RN2483.Config
       Ivory.Tower.Drivers.Net.RN2483.Types
