@@ -39,6 +39,7 @@ library
       Ivory.Tower.Drivers.Temperature.SI7006.Regs
       Ivory.Tower.Drivers.Temperature.SI7006.RegTypes
       Ivory.Tower.Drivers.GPS.NMEA
+      Ivory.Tower.Drivers.SPIDevice
   other-modules:
       Ivory.Tower.Drivers.Encoder.AS5407.RegTypes
       Ivory.Tower.Drivers.PWM.ATIM
