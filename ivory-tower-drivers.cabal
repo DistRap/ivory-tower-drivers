@@ -25,6 +25,10 @@ library
       Ivory.Tower.Drivers.Net.RN2483
       Ivory.Tower.Drivers.Net.RN2483.Config
       Ivory.Tower.Drivers.Net.RN2483.Types
+      Ivory.Tower.Drivers.Net.SX127x
+      Ivory.Tower.Drivers.Net.SX127x.Peripheral
+      Ivory.Tower.Drivers.Net.SX127x.Regs
+      Ivory.Tower.Drivers.Net.SX127x.RegTypes
       Ivory.Tower.Drivers.Temperature.Types
       Ivory.Tower.Drivers.Temperature.HTS221
       Ivory.Tower.Drivers.Temperature.HTS221.Peripheral
@@ -37,9 +41,6 @@ library
       Ivory.Tower.Drivers.GPS.NMEA
   other-modules:
       Ivory.Tower.Drivers.Encoder.AS5407.RegTypes
-      Ivory.Tower.Drivers.Net.RFM95W
-      Ivory.Tower.Drivers.Net.RFM95W.Regs
-      Ivory.Tower.Drivers.Net.RFM95W.RegTypes
       Ivory.Tower.Drivers.PWM.ATIM
       Paths_ivory_tower_drivers
   hs-source-dirs:
