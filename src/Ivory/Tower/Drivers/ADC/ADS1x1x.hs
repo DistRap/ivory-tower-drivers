@@ -6,7 +6,7 @@
 
 module Ivory.Tower.Drivers.ADC.ADS1x1x where
 
-import Control.Monad (forM_)
+import Control.Monad (forM_, void)
 import Ivory.Language
 import Ivory.Stdlib
 
@@ -41,7 +41,7 @@ adsTower :: BackpressureTransmit ('Struct "i2c_transaction_request") ('Struct "i
          -> Tower e (BackpressureTransmit
                ('Stored ITime)
                ADCArray)
-adsTower i2cTransmit@(BackpressureTransmit reqChan resChan) initChan addr = do
+adsTower (BackpressureTransmit reqChan resChan) initChan addr = do
   readRequest <- channel
   readResponse <- channel
 
@@ -66,6 +66,8 @@ adsTower i2cTransmit@(BackpressureTransmit reqChan resChan) initChan addr = do
               emit reqE r
               yield
 
+            rpc_ = void . rpc
+
             merge :: Uint8 -> Uint8 -> Uint16
             merge lsb msb = (safeCast lsb) .| ((safeCast msb) `iShiftL` 8)
 
@@ -75,23 +77,23 @@ adsTower i2cTransmit@(BackpressureTransmit reqChan resChan) initChan addr = do
           when (rc ==? 0) breakOut
 
         cfg <- assign $ repToBits $ defaults
-        rpc $ writeDevReg addr adsRegConfig cfg
+        rpc_ $ writeDevReg addr adsRegConfig cfg
 
         forever $ noBreak $ do
           forM_ (zip [ muxSingle_0
                      , muxSingle_1
                      , muxSingle_2
                      , muxSingle_3]
-                     [0..3]) $ \(mux, i) -> do
+                     [(0 :: Int)..3]) $ \(mux, i) -> do
 
-            cfg <- assign $ repToBits $ withBits defaults $ do
+            cfgMux <- assign $ repToBits $ withBits defaults $ do
               setField config_os opStatusSingle
               setField config_mux mux
 
             -- just a check if we arent busy
-            rpc $ writeDevReg addr adsRegConfig cfg
-            cfg <- rpc $ readDevReg addr adsRegConfig
-            refCopy dbg cfg
+            rpc_ $ writeDevReg addr adsRegConfig cfgMux
+            cfg' <- rpc $ readDevReg addr adsRegConfig
+            refCopy dbg cfg'
 
             hi <- deref (dbg ~> rx_buf ! 0)
             lo <- deref (dbg ~> rx_buf ! 1)
@@ -99,10 +101,10 @@ adsTower i2cTransmit@(BackpressureTransmit reqChan resChan) initChan addr = do
             assert (fromRep d #. config_os ==? opStatusNoop)
 
             v <- rpc $ readDevReg addr adsRegConversion
-            hi <- deref (v ~> rx_buf ! 0)
-            lo <- deref (v ~> rx_buf ! 1)
+            hi' <- deref (v ~> rx_buf ! 0)
+            lo' <- deref (v ~> rx_buf ! 1)
 
-            vx <- assign $ (merge lo hi) `iShiftR` 3
+            vx <- assign $ (merge lo' hi') `iShiftR` 3
             store (adcLast ! fromIntegral i) vx
 
           emit resE (constRef adcLast)
