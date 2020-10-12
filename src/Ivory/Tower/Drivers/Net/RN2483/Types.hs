@@ -38,7 +38,7 @@ data RadioActivation =
 data RadioConfig = RadioConfig {
     rcPower           :: Int -- 1 to 5 for Europe (1 is max power @ 14dB)
   , rcDataRate        :: Int -- 0 to 5 (0 is SF12BW125, 5 is SF7BW125)
-  , rcCodingRate      :: Int -- 4/(CodingRate + 1)
+  , rcCodingRate      :: Int -- 1 to 4 (4/(4 + rcCodingRate) ~> e.g. rcCodingRate = 1 results in CR4/5)
   , rcBandWidth       :: Int
   , rcADR             :: Bool -- Adaptive data rate
   , rcFrequencyPlan   :: FrequencyPlan
