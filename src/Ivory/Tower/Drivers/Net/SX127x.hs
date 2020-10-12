@@ -318,8 +318,8 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
                 -- RSSI[dBm] = -157 + Rssi (using HF output port, SNR >= 0)
                 i <- read $ sxRead (sxPacketRSSI sx127x)
                 s <- read $ sxRead (sxPacketSNR sx127x)
-                store (rxRes ~> radio_rx_rssi) (safeCast (i - 157))
-                store (rxRes ~> radio_rx_snr) (safeCast (twosComplementCast s / 4))
+                store (rxRes ~> radio_rx_rssi) (safeCast i - 157)
+                store (rxRes ~> radio_rx_snr) (safeCast (twosComplementCast s) / 4)
 
                 -- set FIFO to RxCurrentAddr
                 rxAddr <- read $ sxRead (sxFIFORxCurrentAddr sx127x)
