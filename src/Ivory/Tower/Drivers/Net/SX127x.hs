@@ -64,6 +64,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
     txReq <- state (named "txreq")
 
     txAttempts <- stateInit (named "txAttempts") (ival (0 :: Uint32))
+    rxAttempts <- stateInit (named "rxAttempts") (ival (0 :: Uint32))
     txCount <- stateInit (named "txCount") (ival (0 :: Uint32))
 
     isReady <- state (named "isReady")
@@ -267,8 +268,12 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
           isrs <- assign $ fromRep is
           cond_ [
               -- rx timeout only fires in RX Single mode
-              bitToBool (isrs #. irq_flags_rx_timeout) ==> rxTimeout += 1
-            , bitToBool (isrs #. irq_flags_payload_crc_error) ==> rxCRCFail += 1
+              bitToBool (isrs #. irq_flags_rx_timeout) ==> do
+                rxTimeout += 1
+                store inRX false
+            , bitToBool (isrs #. irq_flags_payload_crc_error) ==> do
+                rxCRCFail += 1
+                store inRX false
             , bitToBool (isrs #. irq_flags_tx_done) ==> do
                 txCount += 1
                 emitV radioTxDoneE true
@@ -346,6 +351,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
 
             store inRX true
             store isRX false
+            rxAttempts += 1
 
         return ()
 
