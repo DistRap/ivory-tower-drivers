@@ -166,7 +166,6 @@ import Ivory.Language
 
   -- RX operation time-out value expressed as number of symbols:
   -- Timeout = SymbTimeout * Ts
-  -- XXX: wtf is Ts?
   bitdata SYMB_TIMEOUT_LSB :: Bits 8 = symb_timeout_lsb_reg
   { symb_timeout_lsb :: Bits 8 }
 
