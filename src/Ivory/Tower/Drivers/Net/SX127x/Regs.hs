@@ -15,7 +15,7 @@ import Ivory.Language
   bitdata OP_MODE :: Bits 8 = op_mode_reg
    { op_mode_long_range_mode       :: Bit
    , op_mode_access_shared_reg     :: Bit    -- Allows access to FSK registers when in LoRa mode
-   , _                                 :: Bits 2
+   , _                             :: Bits 2
    , op_mode_low_frequency_mode_on :: Bit
    , op_mode_mode                  :: Mode
    }
@@ -39,12 +39,12 @@ import Ivory.Language
   }
 
   bitdata PA_RAMP :: Bits 8 = pa_ramp_reg
-  { _            :: Bits 4
+  { _        :: Bits 4
   , pa_ramp  :: PaRamp -- Rise/Fall time of ramp up/down in FSK
   }
 
   bitdata OCP :: Bits 8 = ocp_reg
-  { _                :: Bits 2
+  { _            :: Bits 2
   , ocp_ocp_on   :: Bit     -- Enables overload current protection (OCP) for PA
   , ocp_ocp_trim :: Bits 5  -- Trimming of OCP current
   }
@@ -52,7 +52,7 @@ import Ivory.Language
   bitdata LNA_GAIN :: Bits 8 = lna_gain_reg
   { lna_gain_lna_gain     :: LnaGain
   , lna_gain_lna_boost_lf :: Bits 2
-  , _                         :: Bit
+  , _                     :: Bit
   , lna_gain_lna_boost_hf :: Bits 2
   }
 
@@ -152,16 +152,16 @@ import Ivory.Language
   }
 
   bitdata MODEM_CONFIG3 :: Bits 8 = modem_config3_reg
-  { _ :: Bits 4
+  { _                         :: Bits 4
   , modem_config3_mobile_node :: Bit
   , modem_config3_agc_auto_on :: Bit
-  , _ :: Bits 2
+  , _                         :: Bits 2
   }
 
   bitdata INVERT_IQ :: Bits 8 = invert_iq_reg
-  { _ :: Bit
+  { _                  :: Bit
   , invert_iq_inverted :: Bit
-  , _ :: Bits 6
+  , _                  :: Bits 6
   }
 
   -- RX operation time-out value expressed as number of symbols:

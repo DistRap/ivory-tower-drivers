@@ -9,6 +9,7 @@
 
 module Ivory.Tower.Drivers.Net.SX127x where
 
+import Prelude hiding (read)
 import Data.List (intercalate)
 
 import Ivory.Language
@@ -87,8 +88,8 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
     handler resetPeriod (named "resetPeriod") $ do
       reqE <- emitter req 1
       callback $ const $ do
-        res <- deref resetDevice
-        when res $ do
+        doReset <- deref resetDevice
+        when doReset $ do
 
           rl <- deref resLow
 
@@ -108,8 +109,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
               emit reqE (constRef spiReq)
             )
 
-    handler (snd radioTx) (named "transmitPeriod") $ do
-      reqE <- emitter req 1
+    handler (snd radioTx) (named "transmitRequest") $ do
       callback $ \r -> do
         ok <- deref isReady
         when ok $ do
@@ -117,7 +117,6 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
           refCopy txReq r
 
     handler (snd radioRx) (named "listenRequest") $ do
-      reqE <- emitter req 1
       callback $ \r -> do
         ok <- deref isReady
         when ok $ do
@@ -150,12 +149,12 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
               return x
 
             read x = do
-              res <- rpc x
-              deref (res ~> rx_buf ! 1)
+              result <- rpc x
+              deref (result ~> rx_buf ! 1)
 
             write x = rpc x >>= const (return ())
-            setFrequency freq = do
-                frf <- assign $ (((safeCast :: Uint32 -> Uint64) freq) `iShiftL` 19) `iDiv` 32_000_000
+            setFrequency newFreq = do
+                frf <- assign $ (((safeCast :: Uint32 -> Uint64) newFreq) `iShiftL` 19) `iDiv` 32_000_000
                 arr <- local $ izero
                 store (arr ! 0) (bitCast $ frf `iShiftR` 16)
                 store (arr ! 1) (bitCast $ frf `iShiftR` 8)
@@ -261,9 +260,6 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
           mStatus <- yield
           refCopy dbgModemStatus mStatus
 
-          --x <- rpc $ sxRead spiDev (sxMode sx127x)
-          --refCopy dbg x
-
           i <- rpc $ sxRead (sxIRQFlags sx127x)
           refCopy dbgIRQFlags i
 
@@ -284,9 +280,9 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
 
                 -- RSSI[dBm] = -164 + Rssi (using LF output port, SNR >= 0)
                 -- RSSI[dBm] = -157 + Rssi (using HF output port, SNR >= 0)
-                i <- read $ sxRead (sxPacketRSSI sx127x)
+                r <- read $ sxRead (sxPacketRSSI sx127x)
                 s <- read $ sxRead (sxPacketSNR sx127x)
-                store (rxRes ~> radio_rx_rssi) (safeCast i - 157)
+                store (rxRes ~> radio_rx_rssi) (safeCast r - 157)
                 store (rxRes ~> radio_rx_snr) (safeCast (twosComplementCast s) / 4)
 
                 -- set FIFO to RxCurrentAddr
@@ -297,12 +293,12 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
                 dat <- rpc $ sxReadN (sxFIFO sx127x) len
 
                 -- we need to skip rx_buf ! 0
-                arrayMap $ \i -> do
+                arrayMap $ \j -> do
                   cond_ [
-                      fromIx i >=? safeCast len ==> return ()
+                      fromIx j >=? safeCast len ==> return ()
                     , true      ==> do
-                        x <- deref (dat ~> rx_buf ! (toIx (fromIx i) + 1))
-                        store (rxRes ~> radio_rx_buf ! i) x
+                        x <- deref (dat ~> rx_buf ! (toIx (fromIx j) + 1))
+                        store (rxRes ~> radio_rx_buf ! j) x
                     ]
 
                 emit radioRxDoneE (constRef rxRes)
@@ -316,7 +312,6 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
 
           tx <- deref isTX
           when tx $ do
-
             switchMode mode_standby
 
             write $ sxWrite (sxFIFOAddr sx127x) (intToBits 0x0)

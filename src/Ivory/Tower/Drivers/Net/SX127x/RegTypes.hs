@@ -11,10 +11,6 @@ module Ivory.Tower.Drivers.Net.SX127x.RegTypes where
 import Ivory.Language
 
 [ivory|
- bitdata RFMRW :: Bit
-   = read  as 0b1
-   | write as 0b0
-
  bitdata Mode :: Bits 3
    = mode_sleep        as 0b000
    | mode_standby      as 0b001
