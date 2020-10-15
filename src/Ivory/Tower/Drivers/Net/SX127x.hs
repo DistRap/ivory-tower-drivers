@@ -162,6 +162,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
                 store (arr ! 2) (bitCast $ frf)
 
                 write $ sxWriteArray (sxFrfMsb sx127x) (constRef arr) 3
+                getFrequency
 
             getFrequency = do
                 dat <- rpc $ sxReadN (sxFrfMsb sx127x) 3
@@ -206,9 +207,6 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
 
         write $ sxWrite (sxMode sx127x) lora
 
-        --setFrequency 868_000_000
-        setFrequency 868_100_000
-        --setFrequency 434_000_000
         getFrequency
 
         comment "Configure modem"
@@ -318,6 +316,9 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
           tx <- deref isTX
           when tx $ do
             switchMode mode_standby
+
+            f <- deref (txReq ~> radio_tx_frequency)
+            setFrequency f
 
             write $ sxWrite (sxFIFOAddr sx127x) (intToBits 0x0)
 
