@@ -191,5 +191,19 @@ import Ivory.Language
   bitdata FIFO_RX_BYTE_ADDR :: Bits 8 = fifo_rx_byte_addr_reg
   { fifo_rx_byte_fifo_rx_byte_addr_ptr :: Bits 8 }
 
+  bitdata DIO_MAPPING1 :: Bits 8 = dio_mapping1
+  { dio_mapping1_dio0 :: LoRaDIO0
+  , dio_mapping1_dio1 :: LoRaDIO1
+  , dio_mapping1_dio2 :: LoRaDIO2
+  , dio_mapping1_dio3 :: LoRaDIO3
+  }
+
+  bitdata DIO_MAPPING2 :: Bits 8 = dio_mapping2
+  { dio_mapping2_dio4                :: LoRaDIO4
+  , dio_mapping2_dio5                :: LoRaDIO5
+  , _                                :: Bits 3
+  , dio_mapping2_map_preamble_detect :: Bit
+  }
+
 |]
 

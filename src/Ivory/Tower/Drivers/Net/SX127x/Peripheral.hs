@@ -56,8 +56,8 @@ data SX127x = SX127x
   , sxDetectThresh      :: BitDataReg (Bits 8)
   , sxSyncWord          :: BitDataReg (Bits 8)
 
-  , sxDIOMapping1       :: BitDataReg (Bits 8)
-  , sxDIOMapping2       :: BitDataReg (Bits 8)
+  , sxDIOMapping1       :: BitDataReg DIO_MAPPING1
+  , sxDIOMapping2       :: BitDataReg DIO_MAPPING2
   , sxVersion           :: BitDataReg (Bits 8)
 
   , sxTXCO              :: BitDataReg (Bits 8)

@@ -244,8 +244,11 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
           setField pa_config_output_power (fromRep 0x0)
         write $ sxWrite (sxPAConfig sx127x) power
 
-        -- DIO0 ISR on rxdone and txdone
-        write $ sxWrite (sxDIOMapping1 sx127x) (repToBits $ fromIntegral (0b11 :: Int))
+        -- DIO0 ISR on RX done and TX done
+        dio0mapping <- assign $ repToBits $ withBits 0 $ do
+          setField dio_mapping1_dio0 loraDIO0RxOrTxDone
+
+        write $ sxWrite (sxDIOMapping1 sx127x) dio0mapping
 
         comment "Stand-by"
         switchMode mode_standby

@@ -74,4 +74,31 @@ import Ivory.Language
    | spreadingfactor_11  as 11
    | spreadingfactor_12  as 12
 
+ bitdata LoRaDIO0 :: Bits 2
+   = loraDIO0RxDone     as 0b00
+   | loraDIO0TxDone     as 0b01
+   | loraDIO0CadDone    as 0b10
+   | loraDIO0RxOrTxDone as 0b11 -- undocumented
+
+ bitdata LoRaDIO1 :: Bits 2
+   = loraDIO1RxTimeout         as 0b00
+   | loraDIO1FhssChangeChannel as 0b01
+   | loraDIO1CadDetected       as 0b10
+
+ bitdata LoRaDIO2 :: Bits 2
+   = loraDIO2FhssChangeChannel as 0b00
+   -- rest are the same as ^
+
+ bitdata LoRaDIO3 :: Bits 2
+   = loraDIO3CadDone           as 0b00
+   | loraDIO3ValidHeader       as 0b01
+   | loraDIO3PayloadCRCError   as 0b11
+
+ bitdata LoRaDIO4 :: Bits 2
+   = loraDIO4CadDetected       as 0b00
+   | loraDIO4PllLock           as 0b01
+
+ bitdata LoRaDIO5 :: Bits 2
+   = loraDIO5ModeReady         as 0b00
+   | loraDIO5ClkOut            as 0b01
 |]
