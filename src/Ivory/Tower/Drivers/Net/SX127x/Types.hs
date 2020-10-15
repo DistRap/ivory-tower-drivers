@@ -15,11 +15,13 @@ type SXArray = 'Array 128 ('Stored Uint8)
   { radio_tx_buf :: SXArray
   ; radio_tx_len :: Stored (Ix 128)
   ; radio_tx_frequency :: Stored Uint32
+  ; radio_tx_iq_invert :: Stored IBool
   }
 
  struct radio_listen
   { radio_listen_continuous :: Stored IBool
   ; radio_listen_frequency :: Stored Uint32
+  ; radio_listen_iq_invert :: Stored IBool
   }
 
  struct radio_result

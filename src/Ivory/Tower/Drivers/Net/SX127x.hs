@@ -323,6 +323,12 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
             f <- deref (txReq ~> radio_tx_frequency)
             setFrequency f
 
+            invertTx <- deref (txReq ~> radio_tx_iq_invert)
+            when invertTx $ do
+              inv <- assign $ repToBits $ withBits 0x27 $ do
+                clearBit invert_iq_inverted
+              write $ sxWrite (sxInvertIQ sx127x) inv
+
             write $ sxWrite (sxFIFOAddr sx127x) (intToBits 0x0)
 
             len <- fmap ixToU8 $ deref (txReq ~> radio_tx_len)
@@ -349,6 +355,13 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
               setField lna_gain_lna_boost_hf (fromRep 0b11)
 
             write $ sxWrite (sxLNAGain sx127x) lna
+
+            invertRx <- deref (rxReq ~> radio_listen_iq_invert)
+            when invertRx $ do
+              inv <- assign $ repToBits $ withBits 0x27 $ do
+                setBit invert_iq_inverted
+
+              write $ sxWrite (sxInvertIQ sx127x) inv
 
             modeCont <- deref (rxReq ~> radio_listen_continuous)
             switchMode (modeCont ? (mode_rxcontinuous, mode_rxsingle))
