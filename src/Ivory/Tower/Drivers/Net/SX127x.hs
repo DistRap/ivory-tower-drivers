@@ -83,6 +83,8 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
 
     txReq <- state (named "txreq")
 
+    linkConfig <- state (named "linkConfig")
+
     txAttempts <- stateInit (named "txAttempts") (ival (0 :: Uint32))
     rxAttempts <- stateInit (named "rxAttempts") (ival (0 :: Uint32))
     txCount <- stateInit (named "txCount") (ival (0 :: Uint32))
@@ -205,8 +207,75 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
                   when (mode' #. op_mode_mode ==? opmode) breakOut
                   noBreak $ write $ sxWrite (sxMode sx127x) mode
 
+            -- Compare value of previous radio_link struct field
+            -- and only execute action when it's different from new value
+            whenDiffers
+               :: (IvoryStore a, IvoryEq a)
+               => Ref 'Global ('Struct "radio_link")
+               -> Label "radio_link" ('Stored a)
+               -> (a -> Ivory eff ())
+               -> Ivory eff ()
+            whenDiffers rl label fun = do
+              x <- deref (rl ~> label)
+              x' <- deref (linkConfig ~> label)
+              when (x /=? x') (fun x)
+
+            configureLink rl = do
+              whenDiffers rl radio_link_frequency $ \f -> do
+                setFrequency f
+
+              whenDiffers rl radio_link_iq_invert $ \doInvert -> do
+                inv <- assign $ repToBits $ withBits 0x27 $ do
+                  setField invert_iq_inverted (boolToBit doInvert)
+                write $ sxWrite (sxInvertIQ sx127x) inv
+
+              newBw <- deref (rl ~> radio_link_bandwidth)
+              newCr <- deref (rl ~> radio_link_coding_rate)
+              bw <- deref (linkConfig ~> radio_link_bandwidth)
+              cr <- deref (linkConfig ~> radio_link_coding_rate)
+
+              when (newBw /=? bw .|| newCr /=? cr) $ do
+                bwField <- bandwidthToSx127x newBw
+                crField <- codingRateToSx127x newCr
+                modem1 <- assign $ repToBits $ withBits 0 $ do
+                  setField modem_config1_bw bwField
+                  setField modem_config1_cr crField
+                write $ sxWrite (sxModemConfig1 sx127x) modem1
+
+              whenDiffers rl radio_link_spreading $ \sf -> do
+                sfField <- sfToSx127x sf
+                modem2 <- assign $ repToBits $ withBits 0 $ do
+                  setBit modem_config2_rx_payload_crc_on
+                  setField modem_config2_spreading_factor sfField
+                write $ sxWrite (sxModemConfig2 sx127x) modem2
+
+              refCopy linkConfig rl
+
             intToBits :: Int -> Bits 8
             intToBits x = repToBits $ fromIntegral x
+
+            bandwidthToSx127x x = cond [
+                x ==? bw125 ==> return bandwidth_125_kHz
+              , x ==? bw250 ==> return bandwidth_250_kHz
+              , x ==? bw500 ==> return bandwidth_500_kHz
+              ]
+
+            codingRateToSx127x x = cond [
+                x ==? cr1 ==> return cr_4over5bits
+              , x ==? cr2 ==> return cr_4over6bits
+              , x ==? cr3 ==> return cr_4over7bits
+              , x ==? cr4 ==> return cr_4over8bits
+              ]
+
+            sfToSx127x x = cond [
+                x ==? sf6  ==> return spreadingfactor_6
+              , x ==? sf7  ==> return spreadingfactor_7
+              , x ==? sf8  ==> return spreadingfactor_8
+              , x ==? sf9  ==> return spreadingfactor_9
+              , x ==? sf10 ==> return spreadingfactor_10
+              , x ==? sf11 ==> return spreadingfactor_11
+              , x ==? sf12 ==> return spreadingfactor_12
+              ]
 
         store resetDevice true
         -- wait untill timing sensitive device reset is done
@@ -230,21 +299,10 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
         getFrequency
 
         comment "Configure modem"
-        modem1 <- assign $ repToBits $ withBits 0 $ do
-          setField modem_config1_bw bandwidth_125_kHz
-          setField modem_config1_cr cr_4over5bits
-
-        modem2 <- assign $ repToBits $ withBits 0 $ do
-          setBit modem_config2_rx_payload_crc_on
-          --- XXX: hardcoded
-          setField modem_config2_spreading_factor spreadingfactor_9
-          --setField modem_config2_spreading_factor spreadingfactor_7
 
         --modem3 <- assign $ repToBits $ withBits 0 $ do
         --  setBit modem_config3_agc_auto_on
 
-        write $ sxWrite (sxModemConfig1 sx127x) modem1
-        write $ sxWrite (sxModemConfig2 sx127x) modem2
         --write $ sxWrite spiDev (sxModemConfig3 sx127x) modem3
 
         comment "Configure FIFOs"
@@ -342,14 +400,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
           when tx $ do
             switchMode mode_standby
 
-            f <- deref (txReq ~> radio_tx_frequency)
-            setFrequency f
-
-            invertTx <- deref (txReq ~> radio_tx_iq_invert)
-            when invertTx $ do
-              inv <- assign $ repToBits $ withBits 0x27 $ do
-                clearBit invert_iq_inverted
-              write $ sxWrite (sxInvertIQ sx127x) inv
+            configureLink (txReq ~> radio_tx_conf)
 
             write $ sxWrite (sxFIFOAddr sx127x) (intToBits 0x0)
 
@@ -369,21 +420,13 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
           rx <- deref isRX
           when rx $ do
             switchMode mode_standby
-            f <- deref (rxReq ~> radio_listen_frequency)
-            setFrequency f
+            configureLink (rxReq ~> radio_listen_conf)
 
             lna <- assign $ repToBits $ withBits 0 $ do
               setField lna_gain_lna_gain lna_gain_g1
               setField lna_gain_lna_boost_hf (fromRep 0b11)
 
             write $ sxWrite (sxLNAGain sx127x) lna
-
-            invertRx <- deref (rxReq ~> radio_listen_iq_invert)
-            when invertRx $ do
-              inv <- assign $ repToBits $ withBits 0x27 $ do
-                setBit invert_iq_inverted
-
-              write $ sxWrite (sxInvertIQ sx127x) inv
 
             modeCont <- deref (rxReq ~> radio_listen_continuous)
             switchMode (modeCont ? (mode_rxcontinuous, mode_rxsingle))
