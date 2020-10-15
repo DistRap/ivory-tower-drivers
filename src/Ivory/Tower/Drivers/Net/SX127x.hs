@@ -7,7 +7,11 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE BinaryLiterals #-}
 
-module Ivory.Tower.Drivers.Net.SX127x where
+module Ivory.Tower.Drivers.Net.SX127x (
+    module Ivory.Tower.Drivers.Net.SX127x.Types
+  , module Ivory.Tower.Drivers.Net.LoRa
+  , sxTower
+  ) where
 
 import Prelude hiding (read)
 import Data.List (intercalate)
@@ -26,15 +30,31 @@ import Ivory.BSP.STM32.Peripheral.GPIO
 
 import Ivory.Base (ixToU8)
 
+import Ivory.Tower.Drivers.Net.LoRa
 import Ivory.Tower.Drivers.Net.SX127x.Peripheral
 import Ivory.Tower.Drivers.Net.SX127x.Regs
 import Ivory.Tower.Drivers.Net.SX127x.RegTypes
 import Ivory.Tower.Drivers.Net.SX127x.Types
 
--- todo
--- ttn sync word 0x34
+-- | SX127x SPI FSK/LoRa radio driver
+sxTower
+  :: (IvoryArea init, IvoryZero init)
+  => BackpressureTransmit ('Struct "spi_transaction_request")
+                          ('Struct "spi_transaction_result")
+  -> ChanOutput init -- ^ SPI ready
+  -> SPIDeviceHandle
+  -> String          -- ^ Instance name
+  -> Maybe Int       -- ^ Network sync word or default if Nothing (private ~> 0x12)
+  -> GPIOPin         -- ^ Reset pin
+  -> Tower e ( ChanOutput ('Stored IBool)
+             , BackpressureTransmit ('Struct "radio_request")
+                                    ('Stored IBool)
+             , BackpressureTransmit ('Struct "radio_listen")
+                                    ('Struct "radio_result")
+             )
+sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
+  let syncWord = maybe privateNetSyncWord id mSyncWord
 
-sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
   towerModule radioDriverTypes
   towerDepends radioDriverTypes
 
@@ -252,6 +272,8 @@ sxTower (BackpressureTransmit req res) rdy spiDev name pin = do
 
         comment "Stand-by"
         switchMode mode_standby
+
+        write $ sxWrite (sxSyncWord sx127x) (intToBits syncWord)
 
         store isReady true
         emitV radioRdyE true
