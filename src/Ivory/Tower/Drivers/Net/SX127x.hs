@@ -410,6 +410,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
         forever $ noBreak $ do
           -- we get status from polling or interrupt handler above
           mStatus <- yield
+          store busy false
           refCopy dbgModemStatus mStatus
 
           i <- rpc $ sxRead (sxIRQFlags sx127x)
