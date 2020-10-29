@@ -61,7 +61,7 @@ data SX127x = SX127x
   , sxVersion           :: BitDataReg (Bits 8)
 
   , sxTXCO              :: BitDataReg (Bits 8)
-  , sxPADAC             :: BitDataReg (Bits 8)
+  , sxPADAC             :: BitDataReg PA_DAC
   , sxFormerTemp        :: BitDataReg (Bits 8)
   , sxAGCRef            :: BitDataReg (Bits 8)
   , sxAGCThresh1        :: BitDataReg (Bits 8)

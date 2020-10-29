@@ -205,5 +205,11 @@ import Ivory.Language
   , dio_mapping2_map_preamble_detect :: Bit
   }
 
+  bitdata PA_DAC :: Bits 8 = pa_dac
+  { _           :: Bits 5
+  , pa_dac_mode :: PADACMode
+  }
+
+
 |]
 

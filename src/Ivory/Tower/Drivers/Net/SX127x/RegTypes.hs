@@ -101,4 +101,8 @@ import Ivory.Language
  bitdata LoRaDIO5 :: Bits 2
    = loraDIO5ModeReady         as 0b00
    | loraDIO5ClkOut            as 0b01
+
+ bitdata PADACMode :: Bits 3
+   = paDacModeDefault          as 0x04
+   | paDacModeBoost            as 0x07 -- +20dBM on PA_BOOST
 |]
