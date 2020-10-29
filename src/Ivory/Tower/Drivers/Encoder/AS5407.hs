@@ -20,8 +20,8 @@ import Ivory.Base
 
 -- build a AS5407 control message
 as5407Msg :: Bit -> Bit -> Bits 14 -> AS5407Cmd
-as5407Msg parity read addr = fromRep $ withBits 0 $ do
-  setField as_read read
+as5407Msg parity read' addr = fromRep $ withBits 0 $ do
+  setField as_read read'
   setField as_parc parity
   setField as_addr addr
 
@@ -88,7 +88,7 @@ as5407 (BackpressureTransmit req_c res_c) dev initChan = do
     coroutineHandler initChan res_c "as5407coro" $ do
       req_e <- emitter req_c 1
       return $ CoroutineBody $ \ yield -> do
-        let rpc req = do
+        let _rpc req = do
               newreq <- req
               emit req_e newreq
               return ()
@@ -123,11 +123,11 @@ as5407 (BackpressureTransmit req_c res_c) dev initChan = do
 
           refCopy txdata dat
           emit req_e dat
-          x <- yield
-          refCopy rxdata x
+          x' <- yield
+          refCopy rxdata x'
 
-          hi <- deref ((x ~> rx_buf) ! 0)
-          lo <- deref ((x ~> rx_buf) ! 1)
+          hi <- deref ((x' ~> rx_buf) ! 0)
+          lo <- deref ((x' ~> rx_buf) ! 1)
           u16dat <- assign $ (((safeCast hi `iShiftL` 8) .| safeCast lo) :: Uint16)
 
           diagFromReg u16dat diag
@@ -145,15 +145,15 @@ as5407 (BackpressureTransmit req_c res_c) dev initChan = do
           cmd2 <- spiCmd dev (as5407Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFF))
           refCopy txcmd2 cmd
           emit req_e cmd2
-          x <- yield
-          refCopy rxcmd2 x
+          x'' <- yield
+          refCopy rxcmd2 x''
 
           dat2 <- spiData dev (fromRep 0xC000)-- (as5407Data (fromRep 0x0) (fromRep 0x0))
 
           refCopy txdata2 dat2
           emit req_e dat2
-          x <- yield
-          refCopy rxdata2 x
+          y <- yield
+          refCopy rxdata2 y
 
           cnt += 1
           return ()

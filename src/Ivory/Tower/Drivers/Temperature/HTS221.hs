@@ -4,6 +4,7 @@
 
 module Ivory.Tower.Drivers.Temperature.HTS221 where
 
+import Prelude hiding (read)
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.HW

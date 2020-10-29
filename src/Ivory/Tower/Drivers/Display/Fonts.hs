@@ -23,8 +23,6 @@ import Ivory.Stdlib
 -- Segment      | DP A  B  C  D  E  F  G
 
 
-import Data.Char
-
 font7seg :: Char -> Uint8
 font7seg ' ' = 0x00
 font7seg '-' = 0x01
