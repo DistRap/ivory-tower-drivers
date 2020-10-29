@@ -38,13 +38,13 @@ import Ivory.Tower.Drivers.Net.SX127x.Types
 
 -- | SX127x SPI FSK/LoRa radio driver
 sxTower
-  :: (IvoryArea init, IvoryZero init)
+  :: (IvoryArea init, IvoryZero init, Time t)
   => BackpressureTransmit ('Struct "spi_transaction_request")
                           ('Struct "spi_transaction_result")
   -> ChanOutput init -- ^ SPI ready
   -> SPIDeviceHandle
   -> String          -- ^ Instance name
-  -> Maybe Int       -- ^ Network sync word or default if Nothing (private ~> 0x12)
+  -> SXConfig t
   -> GPIOPin         -- ^ Reset pin
   -> Tower e ( ChanOutput ('Stored IBool)
              , BackpressureTransmit ('Struct "radio_request")
@@ -52,13 +52,13 @@ sxTower
              , BackpressureTransmit ('Struct "radio_listen")
                                     ('Struct "radio_result")
              )
-sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
-  let syncWord = maybe privateNetSyncWord id mSyncWord
-
+sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
   towerModule radioDriverTypes
   towerDepends radioDriverTypes
 
-  p <- period (Milliseconds 100)
+  maybePollingPeriod <- case sx_polling_period conf of
+    Just pPer -> Just <$> period pPer
+    Nothing -> pure Nothing
   resetPeriod <- period (Milliseconds 100)
 
   radioRdy    <- channel
@@ -132,29 +132,54 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
               emit reqE (constRef spiReq)
             )
 
+    let trigger :: Emitter ('Struct "spi_transaction_request")
+                -> Ivory eff ()
+        trigger em = do
+            ok <- deref isReady
+            busy' <- deref busy
+            when (ok .&& iNot busy') $ do
+              store busy true
+              sxRead (sxModemStatus sx127x) spiReq
+              emit em (constRef spiReq)
+
     handler (snd radioTx) (named "transmitRequest") $ do
+      reqE <- emitter req 1
       callback $ \r -> do
         ok <- deref isReady
         when ok $ do
           store isTX true
           refCopy txReq r
+          trigger reqE
 
     handler (snd radioRx) (named "listenRequest") $ do
+      reqE <- emitter req 1
       callback $ \r -> do
         ok <- deref isReady
         when ok $ do
           store isRX true
           refCopy rxReq r
+          trigger reqE
 
-    -- XXX: polling
-    handler p (named "per") $ do
-      reqE <- emitter req 1
-      callback $ const $ do
-        ok <- deref isReady
-        busy' <- deref busy
-        when (ok .&& iNot busy') $ do
-          sxRead (sxModemStatus sx127x) spiReq
-          emit reqE (constRef spiReq)
+    case maybePollingPeriod of
+      Nothing -> return ()
+      Just p -> do
+        handler p (named "per") $ do
+          reqE <- emitter req 1
+          callback $ const $ do
+            ok <- deref isReady
+            busy' <- deref busy
+            when (ok .&& iNot busy') $ do
+              store busy true
+              sxRead (sxModemStatus sx127x) spiReq
+              emit reqE (constRef spiReq)
+
+    case sx_isr conf of
+      Nothing -> return ()
+      Just isr ->
+        handler isr (named "dioISR") $ do
+          reqE <- emitter req 1
+          callback $ const $ do
+            trigger reqE
 
     coroutineHandler rdy res "sxCoro" $ do
       reqE <- emitter req 1
@@ -300,10 +325,29 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
 
         comment "Configure modem"
 
-        --modem3 <- assign $ repToBits $ withBits 0 $ do
-        --  setBit modem_config3_agc_auto_on
+        case sx_lna conf of
+          (LNAGainStatic gain boostHF) -> do
+            lna <- assign $ repToBits $ withBits 0 $ do
+              setField lna_gain_lna_gain (case gain of
+                1 -> lna_gain_g1
+                2 -> lna_gain_g2
+                3 -> lna_gain_g3
+                4 -> lna_gain_g4
+                5 -> lna_gain_g5
+                6 -> lna_gain_g6
+                _ -> error "LNA Gain has to be in range <1-6> where 1 is highest gain"
+                )
+              setField lna_gain_lna_boost_hf (fromRep (case boostHF of
+                False -> 0b00
+                True  -> 0b11))
 
-        --write $ sxWrite spiDev (sxModemConfig3 sx127x) modem3
+            write $ sxWrite (sxLNAGain sx127x) lna
+
+          LNAGainAutomatic -> do
+            modem3 <- assign $ repToBits $ withBits 0 $ do
+              setBit modem_config3_agc_auto_on
+
+            write $ sxWrite (sxModemConfig3 sx127x) modem3
 
         comment "Configure FIFOs"
         write $ sxWrite (sxFIFORxBaseAddr sx127x) (repToBits $ fromIntegral (0x0 :: Int))
@@ -315,12 +359,27 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
 
         comment "Power"
         -- for RFM95W only PA_BOOST is available
-        power <- assign $ repToBits $ withBits 0 $ do
-          setBit pa_config_pa_select -- use PA_BOOST
-          -- when PA_BOOST
-          -- Pout = 2dB + output_power
-          setField pa_config_output_power (fromRep 0x0)
-        write $ sxWrite (sxPAConfig sx127x) power
+        case sx_output_pa_boost conf of
+          True -> do
+            comment $ "Using PA_BOOST, output power "
+              ++ (show $ sx_output_power conf + 2) ++ "dBm"
+            power <- assign $ repToBits $ withBits 0 $ do
+              -- Pout = 2dB + output_power
+              setBit pa_config_pa_select
+              setField pa_config_output_power $
+                fromRep $ fromIntegral $ sx_output_power conf
+            write $ sxWrite (sxPAConfig sx127x) power
+          False -> do
+            comment $ "Using RFO, output power "
+              ++ (show $ (10.8 :: Float) + 0.6 * (fromIntegral $ sx_output_max_power conf) - 15 + (fromIntegral $ sx_output_power conf)) ++ "dBm"
+
+            power <- assign $ repToBits $ withBits 0 $ do
+              setField pa_config_output_power $
+                fromRep $ fromIntegral $ sx_output_power conf
+
+              setField pa_config_max_power $
+                fromRep $ fromIntegral $ sx_output_max_power conf
+            write $ sxWrite (sxPAConfig sx127x) power
 
         -- DIO0 ISR on RX done and TX done
         dio0mapping <- assign $ repToBits $ withBits 0 $ do
@@ -331,14 +390,13 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
         comment "Stand-by"
         switchMode mode_standby
 
-        write $ sxWrite (sxSyncWord sx127x) (intToBits syncWord)
+        write $ sxWrite (sxSyncWord sx127x) (intToBits $ sx_sync_word conf)
 
         store isReady true
         emitV radioRdyE true
 
         forever $ noBreak $ do
-          -- we get status from polling handler above
-          -- XXX: switch to exti
+          -- we get status from polling or interrupt handler above
           mStatus <- yield
           refCopy dbgModemStatus mStatus
 
@@ -421,12 +479,6 @@ sxTower (BackpressureTransmit req res) rdy spiDev name mSyncWord pin = do
           when rx $ do
             switchMode mode_standby
             configureLink (rxReq ~> radio_listen_conf)
-
-            lna <- assign $ repToBits $ withBits 0 $ do
-              setField lna_gain_lna_gain lna_gain_g1
-              setField lna_gain_lna_boost_hf (fromRep 0b11)
-
-            write $ sxWrite (sxLNAGain sx127x) lna
 
             modeCont <- deref (rxReq ~> radio_listen_continuous)
             switchMode (modeCont ? (mode_rxcontinuous, mode_rxsingle))
