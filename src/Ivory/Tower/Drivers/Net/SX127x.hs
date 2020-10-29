@@ -274,6 +274,18 @@ sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
                   setField modem_config2_spreading_factor sfField
                 write $ sxWrite (sxModemConfig2 sx127x) modem2
 
+              -- we need to set
+              -- LowDataRateOptimize to 1
+              -- mandated for when the symbol length exceeds 16ms
+              sf <- deref (rl ~> radio_link_spreading)
+              when ((symbolTime sf newBw) >? (fromIMilliseconds (16 :: Uint8))) $ do
+                prev <- read $ sxRead (sxModemConfig3 sx127x)
+                write
+                  $ sxWrite (sxModemConfig3 sx127x)
+                  $ repToBits $ withBits prev $ do
+                    setBit modem_config3_low_data_rate_optimize
+
+              -- store new linkConfig
               refCopy linkConfig rl
 
             intToBits :: Int -> Bits 8

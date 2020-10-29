@@ -152,10 +152,10 @@ import Ivory.Language
   }
 
   bitdata MODEM_CONFIG3 :: Bits 8 = modem_config3_reg
-  { _                         :: Bits 4
-  , modem_config3_mobile_node :: Bit
-  , modem_config3_agc_auto_on :: Bit
-  , _                         :: Bits 2
+  { _                                    :: Bits 4
+  , modem_config3_low_data_rate_optimize :: Bit
+  , modem_config3_agc_auto_on            :: Bit
+  , _                                    :: Bits 2
   }
 
   bitdata INVERT_IQ :: Bits 8 = invert_iq_reg
