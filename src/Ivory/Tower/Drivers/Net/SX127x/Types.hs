@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Ivory.Tower.Drivers.Net.SX127x.Types where
@@ -10,9 +11,8 @@ import Ivory.Language
 import Ivory.Tower
 import Ivory.Tower.Drivers.Net.LoRa
 
-type SXArray = 'Array 128 ('Stored Uint8)
-
 [ivory|
+ string struct SXBuffer 128
  struct radio_link
   { radio_link_frequency   :: Stored Uint32
   ; radio_link_iq_invert   :: Stored IBool
@@ -22,8 +22,7 @@ type SXArray = 'Array 128 ('Stored Uint8)
   }
 
  struct radio_request
-  { radio_tx_buf :: SXArray
-  ; radio_tx_len :: Stored (Ix 128)
+  { radio_tx_buf  :: SXBuffer
   ; radio_tx_conf :: Struct radio_link
   }
 
@@ -33,8 +32,7 @@ type SXArray = 'Array 128 ('Stored Uint8)
   }
 
  struct radio_result
-  { radio_rx_buf  :: SXArray
-  ; radio_rx_len  :: Stored (Ix 128)
+  { radio_rx_buf  :: SXBuffer
   ; radio_rx_rssi :: Stored IFloat
   ; radio_rx_snr  :: Stored IFloat
   }
@@ -42,6 +40,7 @@ type SXArray = 'Array 128 ('Stored Uint8)
 
 radioDriverTypes :: Module
 radioDriverTypes = package "radioDriverTypes" $ do
+  defStringType (Proxy :: Proxy SXBuffer)
   defStruct (Proxy :: Proxy "radio_link")
   defStruct (Proxy :: Proxy "radio_request")
   defStruct (Proxy :: Proxy "radio_listen")

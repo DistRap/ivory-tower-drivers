@@ -28,8 +28,6 @@ import Ivory.Tower.HAL.Bus.SPI.DeviceHandle
 
 import Ivory.BSP.STM32.Peripheral.GPIO
 
-import Ivory.Base (ixToU8)
-
 import Ivory.Tower.Drivers.Net.LoRa
 import Ivory.Tower.Drivers.Net.SX127x.Peripheral
 import Ivory.Tower.Drivers.Net.SX127x.Regs
@@ -204,9 +202,9 @@ sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
             setFrequency newFreq = do
                 frf <- assign $ (((safeCast :: Uint32 -> Uint64) newFreq) `iShiftL` 19) `iDiv` 32_000_000
                 arr <- local $ izero
-                store (arr ! 0) (bitCast $ frf `iShiftR` 16)
-                store (arr ! 1) (bitCast $ frf `iShiftR` 8)
-                store (arr ! 2) (bitCast $ frf)
+                store (arr ~> stringDataL ! 0) (bitCast $ frf `iShiftR` 16)
+                store (arr ~> stringDataL ! 1) (bitCast $ frf `iShiftR` 8)
+                store (arr ~> stringDataL ! 2) (bitCast $ frf)
 
                 write $ sxWriteArray (sxFrfMsb sx127x) (constRef arr) 3
                 getFrequency
@@ -433,7 +431,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
             , bitToBool (isrs #. irq_flags_rx_done) ==> do
                 rxCount += 1
                 len <- read $ sxRead (sxRxLength sx127x)
-                store (rxRes ~> radio_rx_len) (toIx len)
+                store (rxRes ~> radio_rx_buf ~> stringLengthL) (safeCast len)
 
                 -- RSSI[dBm] = -164 + Rssi (using LF output port, SNR >= 0)
                 -- RSSI[dBm] = -157 + Rssi (using HF output port, SNR >= 0)
@@ -455,7 +453,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
                       fromIx j >=? safeCast len ==> return ()
                     , true      ==> do
                         x <- deref (dat ~> rx_buf ! (toIx (fromIx j) + 1))
-                        store (rxRes ~> radio_rx_buf ! j) x
+                        store (rxRes ~> radio_rx_buf ~> stringDataL ! j) x
                     ]
 
                 emit radioRxDoneE (constRef rxRes)
@@ -475,7 +473,7 @@ sxTower (BackpressureTransmit req res) rdy spiDev name conf pin = do
 
             write $ sxWrite (sxFIFOAddr sx127x) (intToBits 0x0)
 
-            len <- fmap ixToU8 $ deref (txReq ~> radio_tx_len)
+            len <- fmap ((bitCast :: Uint32 -> Uint8) . signCast) $ deref (txReq ~> radio_tx_buf ~> stringLengthL)
 
             write $ sxWrite (sxPayloadLength sx127x)
               (repToBits $ len)
@@ -537,7 +535,7 @@ sxWrite bdr dat r = do
 
 sxWriteArray
   :: BitDataReg a
-  -> ConstRef s2 SXArray
+  -> ConstRef s2 SXBuffer
   -> Uint8
   -> Ref s ('Struct "spi_transaction_request")
   -> Ivory eff ()
@@ -549,7 +547,7 @@ sxWriteArray bdr dat len r = do
     cond_ [
         fromIx i >=? safeCast len ==> return ()
       , true      ==> do
-          x <- deref (dat ! i)
+          x <- deref (dat ~> stringDataL ! i)
           store (r ~> tx_buf ! (toIx (fromIx i) + 1)) x
       ]
 
