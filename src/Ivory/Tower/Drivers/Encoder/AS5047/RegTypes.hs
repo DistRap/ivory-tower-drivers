@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Ivory.Tower.Drivers.Encoder.AS5407.RegTypes where
+module Ivory.Tower.Drivers.Encoder.AS5047.RegTypes where
 
 import Ivory.Language
 

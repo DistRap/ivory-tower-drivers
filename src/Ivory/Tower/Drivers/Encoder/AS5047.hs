@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Ivory.Tower.Drivers.Encoder.AS5407 where
+module Ivory.Tower.Drivers.Encoder.AS5047 where
 
 import Ivory.Language
 import Ivory.Stdlib
@@ -12,28 +12,30 @@ import Ivory.Tower
 import Ivory.Tower.HAL.Bus.Interface
 import Ivory.Tower.HAL.Bus.SPI
 import Ivory.Tower.HAL.Bus.SPI.DeviceHandle
+import Ivory.HW.BitData
+import Ivory.HW.Reg
 
-import Ivory.Tower.Drivers.Encoder.AS5407.Regs
-import Ivory.Tower.Drivers.Encoder.AS5407.Types
+import Ivory.Tower.Drivers.Encoder.AS5047.Regs
+import Ivory.Tower.Drivers.Encoder.AS5047.Types
 
 import Ivory.Base
 
--- build a AS5407 control message
-as5407Msg :: Bit -> Bit -> Bits 14 -> AS5407Cmd
-as5407Msg parity read' addr = fromRep $ withBits 0 $ do
+-- build a AS5047 control message
+as5047Msg :: Bit -> Bit -> Bits 14 -> AS5047Cmd
+as5047Msg parity read' addr = fromRep $ withBits 0 $ do
   setField as_read read'
   setField as_parc parity
   setField as_addr addr
 
-as5407Data :: Bit -> Bits 14 -> AS5407Data
-as5407Data parity val = fromRep $ withBits 0 $ do
+as5047Data :: Bit -> Bits 14 -> AS5047Data
+as5047Data parity val = fromRep $ withBits 0 $ do
   setField as_pard parity
   setField as_data val
 
--- create an SPI request from device and AS5407 cmd
+-- create an SPI request from device and AS5047 cmd
 spiCmd :: (GetAlloc eff ~ 'Scope s)
         => SPIDeviceHandle
-        -> AS5407Cmd
+        -> AS5047Cmd
         -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 spiCmd dev msg = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
@@ -43,9 +45,19 @@ spiCmd dev msg = fmap constRef $ local $ istruct
   where l x = ival $ bitCast $ toRep x
         h x = ival $ bitCast $ (toRep x) `iShiftR` 8
 
+regAddr :: BitDataReg d -> Integer
+regAddr r = case bdr_reg r of Reg a -> a
+
+spiRead :: (GetAlloc eff ~ 'Scope s)
+        => SPIDeviceHandle
+        -> BitDataReg a
+        -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
+spiRead dev bdr = spiCmd dev (as5047Msg (fromRep 0x0) (fromRep 0x1) (fromRep $ fromIntegral $ regAddr bdr))
+
+
 spiData :: (GetAlloc eff ~ 'Scope s)
         => SPIDeviceHandle
-        -> AS5407Data
+        -> AS5047Data
         -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
 spiData dev msg = fmap constRef $ local $ istruct
   [ tx_device .= ival dev
@@ -55,17 +67,17 @@ spiData dev msg = fmap constRef $ local $ istruct
   where l x = ival $ bitCast $ toRep x
         h x = ival $ bitCast $ (toRep x) `iShiftR` 8
 
-as5407 :: forall init e . (IvoryZero init, IvoryArea init)
+as5047 :: forall init e . (IvoryZero init, IvoryArea init)
        =>  BackpressureTransmit
              ('Struct "spi_transaction_request")
              ('Struct "spi_transaction_result")
        -> SPIDeviceHandle
        -> ChanOutput init
        -> Tower e ()
-as5407 (BackpressureTransmit req_c res_c) dev initChan = do
+as5047 (BackpressureTransmit req_c res_c) dev initChan = do
   amsTowerDeps
 
-  monitor "as5407" $ do
+  monitor "as5047" $ do
 
     txcmd <- state "txcmd"
     rxcmd <- state "rxcmd"
@@ -85,7 +97,7 @@ as5407 (BackpressureTransmit req_c res_c) dev initChan = do
 
     cnt <- stateInit "ascnt" (ival (0 :: Uint8))
 
-    coroutineHandler initChan res_c "as5407coro" $ do
+    coroutineHandler initChan res_c "as5047coro" $ do
       req_e <- emitter req_c 1
       return $ CoroutineBody $ \ yield -> do
         let _rpc req = do
@@ -94,32 +106,32 @@ as5407 (BackpressureTransmit req_c res_c) dev initChan = do
               return ()
 
         forever $ do
-          --rpc $ spiReq dev (as5407Msg (fromRep 0x0) (fromRep 0x1) (fromRep 0x0018)) (as5407Data (fromRep 0x0) (fromRep 0x0))
-          --newreq <- spiReq dev (as5407Msg (fromRep 0x0) (fromRep 0x1) (fromRep 0x0018)) (as5407Data (fromRep 0x0) (fromRep 0x0))
+          --rpc $ spiReq dev (as5047Msg (fromRep 0x0) (fromRep 0x1) (fromRep 0x0018)) (as5047Data (fromRep 0x0) (fromRep 0x0))
+          --newreq <- spiReq dev (as5047Msg (fromRep 0x0) (fromRep 0x1) (fromRep 0x0018)) (as5047Data (fromRep 0x0) (fromRep 0x0))
           --
           --
           --wat
-          --newq <- spiReq dev (as5407Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFC)) (fromRep 0xC000)-- (as5407Data (fromRep 0x0) (fromRep 0x0))
+          --newq <- spiReq dev (as5047Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFC)) (fromRep 0xC000)-- (as5047Data (fromRep 0x0) (fromRep 0x0))
           --refCopy dbgread newq
           --emit req_e newq
           --x <- yield
           --refCopy dbg x
 
-          --newreq <- spiReq dev (as5407Msg (fromRep 0x0) (fromRep 0x1) (fromRep 0x0001)) (as5407Data (fromRep 0x0) (fromRep 0x0))
+          --newreq <- spiReq dev (as5047Msg (fromRep 0x0) (fromRep 0x1) (fromRep 0x0001)) (as5047Data (fromRep 0x0) (fromRep 0x0))
           --refCopy dbgerrread newreq
           --emit req_e newreq
           --a <- yield
           --refCopy dbgerr a
           --
 
-          -- XXX: convert as5407Msg to INTs and macro the shit out of it?
-          cmd <- spiCmd dev (as5407Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFC))
+          -- XXX: convert as5047Msg to INTs and macro the shit out of it?
+          cmd <- spiCmd dev (as5047Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFC))
           refCopy txcmd cmd
           emit req_e cmd
           x <- yield
           refCopy rxcmd x
 
-          dat <- spiData dev (fromRep 0xC000)-- (as5407Data (fromRep 0x0) (fromRep 0x0))
+          dat <- spiData dev (fromRep 0xC000)-- (as5047Data (fromRep 0x0) (fromRep 0x0))
 
           refCopy txdata dat
           emit req_e dat
@@ -142,13 +154,13 @@ as5407 (BackpressureTransmit req_c res_c) dev initChan = do
             store crc (crc' .^ ((u16dat `iShiftL` (13 - ixToU16 ix)) `iShiftR` (ixToU16 ix)))
             return ()
 
-          cmd2 <- spiCmd dev (as5407Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFF))
+          cmd2 <- spiCmd dev (as5047Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFF))
           refCopy txcmd2 cmd
           emit req_e cmd2
           x'' <- yield
           refCopy rxcmd2 x''
 
-          dat2 <- spiData dev (fromRep 0xC000)-- (as5407Data (fromRep 0x0) (fromRep 0x0))
+          dat2 <- spiData dev (fromRep 0xC000)-- (as5047Data (fromRep 0x0) (fromRep 0x0))
 
           refCopy txdata2 dat2
           emit req_e dat2

@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Ivory.Tower.Drivers.Encoder.AS5407.Types where
+module Ivory.Tower.Drivers.Encoder.AS5047.Types where
 
 import Ivory.Language
 import Ivory.Tower

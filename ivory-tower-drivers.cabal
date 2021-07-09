@@ -19,9 +19,11 @@ library
       Ivory.Tower.Drivers.ADC.PCF8591
       Ivory.Tower.Drivers.Display.MAX7219
       Ivory.Tower.Drivers.Display.Fonts
-      Ivory.Tower.Drivers.Encoder.AS5407
-      Ivory.Tower.Drivers.Encoder.AS5407.Regs
-      Ivory.Tower.Drivers.Encoder.AS5407.Types
+      Ivory.Tower.Drivers.Encoder.AS5047
+      Ivory.Tower.Drivers.Encoder.AS5047.Peripheral
+      Ivory.Tower.Drivers.Encoder.AS5047.Regs
+      Ivory.Tower.Drivers.Encoder.AS5047.RegTypes
+      Ivory.Tower.Drivers.Encoder.AS5047.Types
       Ivory.Tower.Drivers.IO.Shift
       Ivory.Tower.Drivers.Net.LoRa
       Ivory.Tower.Drivers.Net.RN2483
@@ -44,7 +46,6 @@ library
       Ivory.Tower.Drivers.GPS.NMEA
       Ivory.Tower.Drivers.SPIDevice
   other-modules:
-      Ivory.Tower.Drivers.Encoder.AS5407.RegTypes
       Ivory.Tower.Drivers.PWM.ATIM
       Paths_ivory_tower_drivers
   hs-source-dirs:
