@@ -16,7 +16,7 @@ import Ivory.Language
 import Ivory.HW
 import Ivory.Tower
 
-import Ivory.BSP.STM32.Peripheral.ATIM18
+import Ivory.BSP.STM32.Peripheral.ATIM
 import Ivory.BSP.STM32.Peripheral.GPIO
 
 data PWMTimer = PWMTimer {
