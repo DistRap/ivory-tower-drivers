@@ -14,7 +14,7 @@ import Ivory.Tower.Drivers.Encoder.AS5047.Regs
 type ASReg = BitDataReg (Bits 14)
 
 data AS5047 = AS5047
-  { 
+  {
     -- volatile registers
     asNop       :: BitDataReg (Bits 14) -- ^ No-op
   , asErrfl     :: BitDataReg ERRFL     -- ^ Error register
@@ -30,8 +30,8 @@ data AS5047 = AS5047
   , asSettings2 :: BitDataReg SETTINGS2 -- ^ Settings continued
   }
 
-as5047 :: AS5047
-as5047 = AS5047
+as5047Periph :: AS5047
+as5047Periph = AS5047
   {
     -- volatile registers
     asNop       = reg 0x0000

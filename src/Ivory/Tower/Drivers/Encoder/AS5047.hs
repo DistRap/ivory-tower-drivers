@@ -6,6 +6,8 @@
 
 module Ivory.Tower.Drivers.Encoder.AS5047 where
 
+import qualified Data.Bits
+
 import Ivory.Language
 import Ivory.Stdlib
 import Ivory.Tower
@@ -15,6 +17,7 @@ import Ivory.Tower.HAL.Bus.SPI.DeviceHandle
 import Ivory.HW.BitData
 import Ivory.HW.Reg
 
+import Ivory.Tower.Drivers.Encoder.AS5047.Peripheral
 import Ivory.Tower.Drivers.Encoder.AS5047.Regs
 import Ivory.Tower.Drivers.Encoder.AS5047.Types
 
@@ -52,8 +55,13 @@ spiRead :: (GetAlloc eff ~ 'Scope s)
         => SPIDeviceHandle
         -> BitDataReg a
         -> Ivory eff (ConstRef ('Stack s) ('Struct "spi_transaction_request"))
-spiRead dev bdr = spiCmd dev (as5047Msg (fromRep 0x0) (fromRep 0x1) (fromRep $ fromIntegral $ regAddr bdr))
-
+spiRead dev bdr = spiCmd dev $
+  as5047Msg parity (fromRep 0x1) (fromRep $ fromIntegral $ regAddr bdr)
+  where
+    -- even parity bit of lower 15 bits (read + addr)
+    parity = case 0x1 + (Data.Bits.popCount $ regAddr bdr) of
+               x | even x    -> fromRep 0x0
+               _ | otherwise -> fromRep 0x1
 
 spiData :: (GetAlloc eff ~ 'Scope s)
         => SPIDeviceHandle
@@ -84,10 +92,10 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
     txdata <- state "txdata"
     rxdata <- state "rxdata"
 
-    txcmd2 <- state "txcmd2"
-    rxcmd2 <- state "rxcmd2"
-    txdata2 <- state "txdata2"
-    rxdata2 <- state "rxdata2"
+    --txcmd2 <- state "txcmd2"
+    --rxcmd2 <- state "rxcmd2"
+    --txdata2 <- state "txdata2"
+    --rxdata2 <- state "rxdata2"
 
     diag <- state "asdiag"
 
@@ -99,7 +107,7 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
 
     coroutineHandler initChan res_c "as5047coro" $ do
       req_e <- emitter req_c 1
-      return $ CoroutineBody $ \ yield -> do
+      return $ CoroutineBody $ \yield -> do
         let _rpc req = do
               newreq <- req
               emit req_e newreq
@@ -125,16 +133,18 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
           --
 
           -- XXX: convert as5047Msg to INTs and macro the shit out of it?
-          cmd <- spiCmd dev (as5047Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFC))
+          --cmd <- spiCmd dev (as5047Msg (fromRep 0x1) (fromRep 0x1) (fromRep 0x3FFC))
+          cmd <- spiRead dev (asDiagAGC as5047Periph)
           refCopy txcmd cmd
           emit req_e cmd
           x <- yield
           refCopy rxcmd x
 
-          dat <- spiData dev (fromRep 0xC000)-- (as5047Data (fromRep 0x0) (fromRep 0x0))
+          --dat <- spiData dev (fromRep 0xC000)-- (as5047Data (fromRep 0x0) (fromRep 0x0))
+          cmd' <- spiRead dev (asDiagAGC as5047Periph)
 
-          refCopy txdata dat
-          emit req_e dat
+          refCopy txdata cmd'
+          emit req_e cmd'
           x' <- yield
           refCopy rxdata x'
 
@@ -144,6 +154,9 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
 
           diagFromReg u16dat diag
 
+          cnt += 1
+          return ()
+{--
 
           store crc 0
           store excrc (crcFromReg u16dat)
@@ -167,8 +180,6 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
           y <- yield
           refCopy rxdata2 y
 
-          cnt += 1
-          return ()
 
           --once onceStateVar $ ledOn redLED
 
@@ -180,6 +191,7 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
           --
           --  isRising channel?
 
+--}
 
   return ()
 
