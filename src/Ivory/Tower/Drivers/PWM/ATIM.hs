@@ -12,7 +12,6 @@
 
 module Ivory.Tower.Drivers.PWM.ATIM where
 
-{--
 import Ivory.Language
 import Ivory.HW
 import Ivory.Tower
@@ -158,5 +157,3 @@ pwm_get_dir :: ATIM -> Ivory eff Uint8
 pwm_get_dir ATIM{..} = do
   d <- getReg atimRegCR1
   return $ toRep (d #. atim_cr1_dir)
-
---}
