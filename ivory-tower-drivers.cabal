@@ -25,6 +25,13 @@ library
       Ivory.Tower.Drivers.Encoder.AS5047.RegTypes
       Ivory.Tower.Drivers.Encoder.AS5047.Types
       Ivory.Tower.Drivers.IO.Shift
+      Ivory.Tower.Drivers.IO.CLT01
+      Ivory.Tower.Drivers.IO.CLT01.Regs
+      Ivory.Tower.Drivers.IO.CLT01.Types
+      Ivory.Tower.Drivers.IO.PLC01A1
+      Ivory.Tower.Drivers.IO.VNI8200
+      Ivory.Tower.Drivers.IO.VNI8200.Regs
+      Ivory.Tower.Drivers.IO.VNI8200.Types
       Ivory.Tower.Drivers.Net.LoRa
       Ivory.Tower.Drivers.Net.RN2483
       Ivory.Tower.Drivers.Net.RN2483.Config
