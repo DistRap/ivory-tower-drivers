@@ -17,7 +17,7 @@ import Ivory.Base (xnorBits, xnorBitRange)
 import Ivory.Tower.Drivers.IO.CLT01.Regs
 import Ivory.Tower.Drivers.IO.CLT01.Types
 
--- | CLT01-37SQ7 driver
+-- | CLT01-38SQ7 driver
 cltTower
   :: BackpressureTransmit
        ('Struct "spi_transaction_request")
