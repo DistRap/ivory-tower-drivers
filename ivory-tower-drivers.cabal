@@ -36,6 +36,7 @@ library
       Ivory.Tower.Drivers.Net.RN2483
       Ivory.Tower.Drivers.Net.RN2483.Config
       Ivory.Tower.Drivers.Net.RN2483.Types
+      Ivory.Tower.Drivers.Net.RS485
       Ivory.Tower.Drivers.Net.SX127x
       Ivory.Tower.Drivers.Net.SX127x.Peripheral
       Ivory.Tower.Drivers.Net.SX127x.Regs
