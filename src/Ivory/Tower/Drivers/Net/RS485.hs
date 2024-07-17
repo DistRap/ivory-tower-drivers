@@ -12,9 +12,10 @@ import Ivory.Tower
 import Ivory.Stdlib ((==>), cond_)
 import Ivory.Tower.HAL.Bus.Interface (BackpressureTransmit(..))
 import Ivory.BSP.STM32.ClockConfig (ClockConfig)
-import Ivory.BSP.STM32.Driver.UART
+import Ivory.BSP.STM32.Driver.UART.DMA
 import Ivory.BSP.STM32.Peripheral.GPIO
-import Ivory.BSP.STM32.Peripheral.UART (UART, UARTPins)
+import Ivory.BSP.STM32.Peripheral.UART (UARTPins)
+import Ivory.BSP.STM32.Peripheral.UART.DMA (DMAUART)
 
 -- | Half-duplex RS485 driver
 -- Switches dir output pin 1ms after transmission
@@ -29,7 +30,7 @@ rs485Tower
   :: forall s e
    . IvoryString s
   => (e -> ClockConfig) -- ^ ClockConfig
-  -> UART -- ^ UART peripheral
+  -> DMAUART -- ^ UART peripheral
   -> UARTPins -- ^ UART Pins
   -> GPIOPin -- ^ RS485 dir pin
   -> Integer -- ^ Baudrate
@@ -37,14 +38,14 @@ rs485Tower
        ( ChanInput s
        , ChanOutput (Stored Uint8)
        )
-rs485Tower tocc uartPeriph uartPins dirPin baud = do
+rs485Tower tocc dmaUartPeriph uartPins dirPin baud = do
   (BackpressureTransmit req res, istream, rsMon)
-    <- uartTower
-        @s
+    <- dmaUARTTower
         tocc
-        uartPeriph
+        dmaUartPeriph
         uartPins
         baud
+        (Proxy :: Proxy s)
   monitor (named "UartMonitor") rsMon
 
   req485 <- channel
@@ -72,7 +73,9 @@ rs485Tower tocc uartPeriph uartPins dirPin baud = do
            (ival (0 :: Uint8))
 
     handler res (named "DoneSending") $ do
-      callback $ const $ store dirDelay 2
+      -- arbitrary to not cut off last bytes
+      -- 2 for uartTower, 3 for dmaUARTower
+      callback $ const $ store dirDelay 3
 
     handler dirPeriod (named "DirPeriod") $ do
       callback $ const $ do
