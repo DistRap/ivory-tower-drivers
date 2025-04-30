@@ -1,3 +1,4 @@
+-- FIXME: finish me
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -22,7 +23,7 @@ import Ivory.Tower.Drivers.Encoder.AS5047.Peripheral
 import Ivory.Tower.Drivers.Encoder.AS5047.Regs
 import Ivory.Tower.Drivers.Encoder.AS5047.Types
 
-import Ivory.Base
+--import Ivory.Base
 
 -- build a AS5047 control message
 as5047Msg :: Bit -> Bit -> Bits 14 -> AS5047Cmd
@@ -100,9 +101,9 @@ as5047 (BackpressureTransmit req_c res_c) dev initChan = do
 
     diag <- state "asdiag"
 
-    crc <- stateInit "crc" (ival (0 :: Uint16))
-    dbg <- stateInit "dbg" (ival (0 :: Uint16))
-    excrc <- stateInit "excrc" (ival false)
+    --crc <- stateInit "crc" (ival (0 :: Uint16))
+    --dbg <- stateInit "dbg" (ival (0 :: Uint16))
+    --excrc <- stateInit "excrc" (ival false)
 
     cnt <- stateInit "ascnt" (ival (0 :: Uint8))
 
