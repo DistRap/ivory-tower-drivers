@@ -28,11 +28,12 @@ data HX711 =
     , channelBGain :: Maybe BGain
     }
 
+fastSampleRate :: Bool -> Microseconds
 fastSampleRate False = hertzToMicroseconds 10
 fastSampleRate True = hertzToMicroseconds 80
 
 hertzToMicroseconds :: Integer -> Microseconds
-hertzToMicroseconds hz = Microseconds . round $ 1 / (fromInteger hz) * 1_000_000
+hertzToMicroseconds hz = Microseconds . round $ 1 / (fromInteger hz) * (1_000_000 :: Double)
 
 -- Simple version reading A channel at 128x gain
 hx711Tower
@@ -106,9 +107,6 @@ hx711ABTower HX711{..} = do
     sampledValB <- stateInit "sampledValB" (ival (0 :: Uint32))
     cnt <- stateInit "cnt" (ival (0 :: Uint32))
 
-    ms <- state "mswat"
-    correctedVal <- stateInit "correctedVal" (ival (0 :: Uint32))
-
     handler periodic "periodic_hx711" $ do
       eA <- emitter (fst chanA) 1
       eB <- emitter (fst chanB) 1
@@ -135,10 +133,6 @@ hx711ABTower HX711{..} = do
           store sampledVal $ currenterWeight  .| ((safeCast val) `iShiftL` (24 - signCast (fromIx $ i)))
 
           pinClearHold
-
-        -- Pad with 0xFF if sampled MSB is 1 (24bit twos complement)
-        msb <- (==? 1) . (`iShiftR` 23) . (0x800000 .&) <$> deref sampledVal
-        store ms msb
 
         aExpected <- deref expectChanA
         ifte_ (aExpected)
@@ -185,8 +179,6 @@ hx711ABC
 hx711ABC HX711{..} = do
 
   periodic <- period (fastSampleRate fastMode)
-  -- maximum reset cycle length before we try again
-  initPeriod <- period (Milliseconds 100)
 
   chanA <- channel
   chanB <- channel
@@ -214,7 +206,6 @@ hx711ABC HX711{..} = do
 
         let pinSetHold = arrayMap $ \(_ :: Ix 4) -> pinSet clockPin
             pinClearHold = arrayMap $ \(_ :: Ix 4) -> pinClear clockPin
-            cycle = pinSetHold >> pinClearHold
 
         comment "perform reset"
         pinSet clockPin
@@ -256,7 +247,7 @@ hx711ABC HX711{..} = do
 
           case (channelAGain, channelBGain) of
             (Nothing, Nothing) -> error "No channel to sample, set either channelAGain or channelBGain"
-            (Just aGain, Nothing) -> do
+            (Just _, Nothing) -> do
               comment "repeated A"
             (Nothing, Just _) -> do
 
@@ -269,7 +260,7 @@ hx711ABC HX711{..} = do
               sintVal <- deref sampledVal
               emitV eB $ ((twosComplementCast :: Uint32 -> Sint32) (sintVal `iShiftL` 8)) `iDiv` 256
 
-            (Just aGain, Just _) -> do
+            (Just _, Just _) -> do
 
               comment "both channels, half A half B"
               aExpected <- deref expectChanA
@@ -303,7 +294,6 @@ hx711ABC HX711{..} = do
                       arrayMap $ \(_ :: Ix 3) -> do
                         pinSetHold
                         pinClearHold
-                    Nothing -> comment "no channel A sampling"
 
                   refCopy sampledValB sampledVal
 
