@@ -1,9 +1,2 @@
-{ghc}:
-with (import <nixpkgs> {});
-
-haskell.lib.buildStackProject {
-  inherit ghc;
-  name = "myEnv";
-  buildInputs = [ libev ];
-}
-
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "default" }:
+(import ./default.nix { inherit nixpkgs compiler; }).shell
