@@ -1,13 +1,13 @@
+cabal-version:  2.2
 name:           ivory-tower-drivers
 version:        0.1.0.0
 synopsis:       Ivory Tower drivers
-author:         base48.cz
+description:    Device drivers for Ivory/Tower
+license:        BSD-3-Clause
+author:         Sorki
 maintainer:     srk@48.io
-license:        BSD3
-license-file:   LICENSE
+category:       Embedded
 build-type:     Simple
-
-cabal-version: 1.12
 
 library
   exposed-modules:
