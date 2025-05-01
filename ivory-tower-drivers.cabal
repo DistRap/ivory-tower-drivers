@@ -54,6 +54,7 @@ library
       Ivory.Tower.Drivers.Temperature.SI7006.Peripheral
       Ivory.Tower.Drivers.Temperature.SI7006.Regs
       Ivory.Tower.Drivers.Temperature.SI7006.RegTypes
+      Ivory.Tower.Drivers.Temperature.Thermistor
       Ivory.Tower.Drivers.GPS.NMEA
       Ivory.Tower.Drivers.SPIDevice
   other-modules:
