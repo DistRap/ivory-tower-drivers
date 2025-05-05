@@ -39,8 +39,13 @@ sht21decodeHum = proc "sht21decodeHum" $ \rxbuf -> body $ do
   res <- assign $ ((safeCast i :: IFloat) / 2**16) * 125.0 - 6.0
   ret res
 
-sht21Tower :: BackpressureTransmit ('Struct "i2c_transaction_request") ('Struct "i2c_transaction_result")
-           -> Tower e (ChanOutput ('Stored IFloat), ChanOutput ('Stored IFloat))
+sht21Tower
+  :: BackpressureTransmit
+        ('Struct "i2c_transaction_request")
+        ('Struct "i2c_transaction_result")
+  -> Tower e
+      ( ChanOutput ('Stored IFloat)
+      , ChanOutput ('Stored IFloat))
 sht21Tower (BackpressureTransmit req res) = do -- XXX what about _ready?
   towerModule aModule
   towerDepends aModule
