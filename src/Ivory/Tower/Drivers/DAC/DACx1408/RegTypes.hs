@@ -9,6 +9,11 @@ module Ivory.Tower.Drivers.DAC.DACx1408.RegTypes where
 import Ivory.Language
 
 [ivory|
+  bitdata Device :: Bits 14
+    = device_dac81408 as 0x298
+    | device_dac71408 as 0x288
+    | device_dac61408 as 0x248
+
   bitdata ToggleMode :: Bits 2
     = toggle_mode_disabled as 0b00
     | toggle_mode_toggle0  as 0b01

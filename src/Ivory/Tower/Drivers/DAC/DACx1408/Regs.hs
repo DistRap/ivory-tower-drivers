@@ -12,7 +12,7 @@ import Ivory.Tower.Drivers.DAC.DACx1408.RegTypes
 
 [ivory|
   bitdata DeviceID :: Bits 16 = dacRegDeviceID
-    { device_id_data    :: Bits 14
+    { device_id_data    :: Device
     , device_id_version :: Bits 2
     }
 
