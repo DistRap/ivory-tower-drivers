@@ -87,6 +87,7 @@ thermistorTower adcIn Thermistor{..} = do
 
   return convertedOut
 
+sampleTerm :: Thermistor
 sampleTerm = Thermistor {
     t1 = 25.0
   , r1 = 100000 -- 100kOhm
