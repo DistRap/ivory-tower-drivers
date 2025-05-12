@@ -17,6 +17,7 @@ library
       Ivory.Tower.Drivers.ADC.ADS1x1x.RegTypes
       Ivory.Tower.Drivers.ADC.HX711
       Ivory.Tower.Drivers.ADC.PCF8591
+      Ivory.Tower.Drivers.DAC.DACx1408
       Ivory.Tower.Drivers.DAC.DACx1408.Peripheral
       Ivory.Tower.Drivers.DAC.DACx1408.Regs
       Ivory.Tower.Drivers.DAC.DACx1408.RegTypes
