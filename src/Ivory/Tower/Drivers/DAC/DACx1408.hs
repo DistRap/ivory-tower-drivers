@@ -222,8 +222,8 @@ dacWriteOutputs
 dacWriteOutputs bdr arr r = do
   store (r ~> tx_buf ! 0) (fromIntegral $ regAddr bdr)
   arrayMap $ \i ->
-    deref (arr ! (toIx . fromIx) i)
-    >>= setOutput i . convertOutput
+    deref (arr ! i)
+    >>= setOutput ((toIx . fromIx) i) . convertOutput
 
   store (r ~> tx_len) (8*2 + 1)
   where
