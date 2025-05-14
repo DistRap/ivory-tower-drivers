@@ -135,13 +135,15 @@ dacx1408Tower (BackpressureTransmit req res) rdy spiDev = do
         -- Note that reads won't work after
         -- this point without
         -- disabling streaming again
-        spi <- read $ dacRead dacDeviceID
+        spi <- read $ dacRead dacSPI
         write
           $ dacWrite
               dacSPI
               (repToBits $ withBits spi $ do
                 setBit spi_streaming_enable
               )
+
+        emitV dacReadyE true
 
         -- Emit ready on each response,
         -- triggered by handlers bellow
