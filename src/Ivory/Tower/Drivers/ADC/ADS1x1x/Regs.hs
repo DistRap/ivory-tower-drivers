@@ -14,7 +14,6 @@ import Ivory.Tower.Drivers.ADC.ADS1x1x.RegTypes
    , adsReg :: AdsReg
    }
 
-
  bitdata CONVERSION :: Bits 16 = ads_conversion
    { conversion :: Bits 12
    , _          :: Bits 4

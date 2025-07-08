@@ -1,11 +1,16 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Ivory.Tower.Drivers.ADC.ADS1x1x where
+module Ivory.Tower.Drivers.ADC.ADS1x1x
+  ( adsTower
+  , adsDefaultAddr
+  , module Ivory.Tower.Drivers.ADC.ADS1x1x.Types
+  ) where
 
 import Control.Monad (forM_, void)
 import Ivory.Language
@@ -18,46 +23,49 @@ import Ivory.Tower.HAL.Bus.I2C.DeviceAddr
 
 import Ivory.Tower.Drivers.ADC.ADS1x1x.Regs
 import Ivory.Tower.Drivers.ADC.ADS1x1x.RegTypes
+import Ivory.Tower.Drivers.ADC.ADS1x1x.Types
+
+import qualified Data.List.NonEmpty
 
 adsDefaultAddr :: I2CDeviceAddr
 adsDefaultAddr = I2CDeviceAddr 0x48
 
-named :: String -> String
-named nm = "ads_" ++ nm
-
-type ADCArray = 'Array 4 ('Stored Uint16)
-
-defaults :: BitDataRep CONFIG
-defaults = withBits 0 $ do
-  setField config_mux muxDiff_0_1
-  setField config_pga pga_fsr_2_048
-  setField config_mode modeSingle
-  setField config_datarate dr_1600
-  setField config_comp_que cmpQueueDisable
-
--- on trigger read all 4 channels in single ended mode
-adsTower :: BackpressureTransmit ('Struct "i2c_transaction_request") ('Struct "i2c_transaction_result")
-         -> ChanOutput ('Stored ITime)
-         -> I2CDeviceAddr
-         -> Tower e (BackpressureTransmit
-               ('Stored ITime)
-               ADCArray)
-adsTower (BackpressureTransmit reqChan resChan) initChan addr = do
+-- | Driver for sampling ADS1x1x series chips.
+--
+-- Sending message to request channel triggers
+-- conversion sequence specified via @ADSConfig@.
+--
+-- Driver always returns an Array of four elements
+-- even if only one conversion is performed.
+adsTower
+  :: BackpressureTransmit
+       (Struct "i2c_transaction_request")
+       (Struct "i2c_transaction_result")
+  -> ChanOutput (Stored ITime)
+  -> I2CDeviceAddr
+  -> ADSConfig
+  -> Tower e
+      (BackpressureTransmit
+         (Stored ITime)
+         (Array 4 (Stored IFloat))
+      )
+adsTower (BackpressureTransmit reqChan resChan) initChan addr adsConf@ADSConfig{..} = do
   readRequest <- channel
   readResponse <- channel
 
-  monitor (named "monitor") $ do
-    adcLast <- state (named "last")
+  monitor (named "Monitor") $ do
+    adcLast <- state (named "Last")
+    ready <- state (named "Ready")
 
-    dbg <- state (named "dbg")
-
-    handler (snd readRequest) (named "readReq") $ do
+    handler (snd readRequest) (named "ReadReq") $ do
       reqE <- emitter reqChan 1
       callback $ const $ do
-        dummy <- readDevReg addr adsRegConfig
-        emit reqE dummy
+        isReady <- deref ready
+        when isReady $ do
+          dummy <- readDevReg addr adsRegConfig
+          emit reqE dummy
 
-    coroutineHandler initChan resChan (named "coro") $ do
+    coroutineHandler initChan resChan (named "Coro") $ do
       resE <- emitter (fst readResponse) 1
       reqE <- emitter reqChan 1
       return $ CoroutineBody $ \yield -> do
@@ -72,50 +80,100 @@ adsTower (BackpressureTransmit reqChan resChan) initChan addr = do
             merge :: Uint8 -> Uint8 -> Uint16
             merge lsb msb = (safeCast lsb) .| ((safeCast msb) `iShiftL` 8)
 
+            -- | Read conversion register and convert to voltage
+            readConversion = do
+              v <- noBreak $ rpc $ readDevReg addr adsRegConversion
+              hi' <- deref (v ~> rx_buf ! 0)
+              lo' <- deref (v ~> rx_buf ! 1)
+
+              assign
+                $ (*(adsPGAToIFloat adsConfigPGA))
+                $ (/2^(15 :: Int))
+                $ safeCast
+                $ twosComplementCast
+                $ merge lo' hi'
+
         forever $ do
           cfg <- noBreak $ rpc $ readDevReg addr adsRegConfig
           rc <- cfg ~>* resultcode
           when (rc ==? 0) breakOut
 
-        cfg <- assign $ repToBits $ defaults
-        rpc_ $ writeDevReg addr adsRegConfig cfg
+        comment "Set configuration"
+        rpc_
+          $ writeDevReg
+              addr
+              adsRegConfig
+              $ repToBits
+              $ cfgReg adsConf
 
-        forever $ noBreak $ do
-          forM_ (zip [ muxSingle_0
-                     , muxSingle_1
-                     , muxSingle_2
-                     , muxSingle_3]
-                     [(0 :: Int)..3]) $ \(mux, i) -> do
+        store ready true
 
-            cfgMux <- assign $ repToBits $ withBits defaults $ do
-              setField config_os opStatusSingle
-              setField config_mux mux
+        forever $ do
+          case adsConfigMode of
+            ADSMode_Single muxSequence -> do
+              forM_
+                (zip
+                  (map
+                    adsMuxVal
+                    (Data.List.NonEmpty.toList muxSequence)
+                  )
+                  [(0 :: Int)..3])
+                $ \(mux, i) -> do
 
-            -- just a check if we arent busy
-            rpc_ $ writeDevReg addr adsRegConfig cfgMux
-            cfg' <- rpc $ readDevReg addr adsRegConfig
-            refCopy dbg cfg'
+                cfgMux <- assign
+                  $ repToBits
+                  $ withBits (cfgReg adsConf)
+                  $ do
+                      setField config_os opPerformSingle
+                      setField config_mux mux
 
-            hi <- deref (dbg ~> rx_buf ! 0)
-            lo <- deref (dbg ~> rx_buf ! 1)
-            d <- assign $ (merge lo hi)
-            assert (fromRep d #. config_os ==? opStatusNoop)
+                noBreak $ rpc_ $ writeDevReg addr adsRegConfig cfgMux
 
-            v <- rpc $ readDevReg addr adsRegConversion
-            hi' <- deref (v ~> rx_buf ! 0)
-            lo' <- deref (v ~> rx_buf ! 1)
+                -- loop until conversion is complete
+                forever $ do
+                  cfg' <- noBreak $ rpc $ readDevReg addr adsRegConfig
 
-            vx <- assign $ (merge lo' hi') `iShiftR` 3
-            store (adcLast ! fromIntegral i) vx
+                  hi <- deref (cfg' ~> rx_buf ! 0)
+                  lo <- deref (cfg' ~> rx_buf ! 1)
+                  d <- assign $ (merge lo hi)
+
+                  when
+                    (fromRep d #. config_os ==? opStatusIdle)
+                    breakOut
+
+                  readConversion
+                    >>= store (adcLast ! fromIntegral i)
+
+            ADSMode_Continuous _mux -> do
+              readConversion
+              >>= store (adcLast ! 0)
 
           emit resE (constRef adcLast)
 
+          comment "Wait for next read request"
           _ <- yield
-          return ()
+          pure ()
 
   return $ BackpressureTransmit
             (fst readRequest)
             (snd readResponse)
+  where
+    named :: String -> String
+    named nm = "ads" ++ nm
+
+cfgReg :: ADSConfig -> BitDataRep CONFIG
+cfgReg ADSConfig{..} = withBits 0 $ do
+  setField config_mux mux
+  setField config_pga $ adsPGAVal adsConfigPGA
+  setField config_mode $ adsModeVal adsConfigMode
+  setField config_datarate $ adsDataRateVal adsConfigDataRate
+  setField config_comp_que cmpQueueDisable
+  where
+    mux =
+        adsMuxVal
+      $ case adsConfigMode of
+          ADSMode_Continuous m -> m
+          ADSMode_Single muxSeq -> Data.List.NonEmpty.head muxSeq
 
 readDevReg :: (GetAlloc eff ~ 'Scope s)
            => I2CDeviceAddr

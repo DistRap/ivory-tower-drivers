@@ -15,9 +15,14 @@ import Ivory.Language
    | adsRegThreshLow  as 0b10
    | adsRegThreshHigh as 0b11
 
+ -- Operational status or single-shot conversion start
  bitdata OperationalStatus :: Bit
-   = opStatusNoop   as 0b0 -- No effect
-   | opStatusSingle as 0b1 -- Perform single conversion
+   -- when reading (operational status)
+   = opStatusBusy    as 0b0 -- Device is performing a conversion
+   | opStatusIdle    as 0b1 -- Device is idle
+   -- when writing (single-shot conversion start)
+   | opPerformNoop   as 0b0 -- No effect
+   | opPerformSingle as 0b1 -- Perform single conversion
 
  bitdata MUX :: Bits 3
    = muxDiff_0_1 as 0b000 -- Differential P = AIN0, N = AIN1 (default)
@@ -42,13 +47,23 @@ import Ivory.Language
    | modeSingle     as 0b1
 
  bitdata DataRate :: Bits 3
-   = dr_128  as 0b000
-   | dr_250  as 0b001
-   | dr_490  as 0b010
-   | dr_920  as 0b011
-   | dr_1600 as 0b100 --default
-   | dr_2400 as 0b101
-   | dr_3300 as 0b111
+   -- ADS101x data rates
+   = dr_ads101x_128  as 0b000 -- 128 SPS
+   | dr_ads101x_250  as 0b001
+   | dr_ads101x_490  as 0b010
+   | dr_ads101x_920  as 0b011
+   | dr_ads101x_1600 as 0b100 --default
+   | dr_ads101x_2400 as 0b101
+   | dr_ads101x_3300 as 0b111
+   -- ADS111x data rates
+   | dr_ads111x_8    as 0b000 -- 8 SPS
+   | dr_ads111x_16   as 0b001
+   | dr_ads111x_32   as 0b010
+   | dr_ads111x_64   as 0b011
+   | dr_ads111x_128  as 0b100 --default
+   | dr_ads111x_250  as 0b101
+   | dr_ads111x_475  as 0b110
+   | dr_ads111x_860  as 0b111
 
  bitdata ComparatorMode :: Bit
    = cmpModeTraditional as 0b0
