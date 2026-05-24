@@ -37,6 +37,11 @@ library
       Ivory.Tower.Drivers.IO.VNI8200
       Ivory.Tower.Drivers.IO.VNI8200.Regs
       Ivory.Tower.Drivers.IO.VNI8200.Types
+      Ivory.Tower.Drivers.Magnetometer.HMC5883L
+      Ivory.Tower.Drivers.Magnetometer.HMC5883L.Regs
+      Ivory.Tower.Drivers.Magnetometer.QMC5883L
+      Ivory.Tower.Drivers.Magnetometer.QMC5883L.Regs
+      Ivory.Tower.Drivers.Magnetometer.Types
       Ivory.Tower.Drivers.Net.LoRa
       Ivory.Tower.Drivers.Net.RN2483
       Ivory.Tower.Drivers.Net.RN2483.Config
