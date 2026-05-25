@@ -52,6 +52,9 @@ library
       Ivory.Tower.Drivers.Net.SX127x.Regs
       Ivory.Tower.Drivers.Net.SX127x.RegTypes
       Ivory.Tower.Drivers.Net.SX127x.Types
+      Ivory.Tower.Drivers.Pressure.BMP180
+      Ivory.Tower.Drivers.Pressure.BMP180.Regs
+      Ivory.Tower.Drivers.Pressure.BMP180.Types
       Ivory.Tower.Drivers.Temperature.Types
       Ivory.Tower.Drivers.Temperature.HTS221
       Ivory.Tower.Drivers.Temperature.HTS221.Peripheral
